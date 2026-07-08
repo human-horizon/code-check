@@ -1,0 +1,49 @@
+{
+  "name": "code-check",
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "check": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/src/index.js",
+      "types": "./dist/src/index.d.ts"
+    },
+    "./spec-check": {
+      "import": "./dist/src/spec-check.js",
+      "types": "./dist/src/spec-check.d.ts"
+    },
+    "./doc-check": {
+      "import": "./dist/src/doc-check.js",
+      "types": "./dist/src/doc-check.d.ts"
+    },
+    "./doc-translation-check": {
+      "import": "./dist/src/doc-translation-check.js",
+      "types": "./dist/src/doc-translation-check.d.ts"
+    },
+    "./test-check": {
+      "import": "./dist/src/test-check.js",
+      "types": "./dist/src/test-check.d.ts"
+    },
+    "./integration-e2e-check": {
+      "import": "./dist/src/integration-e2e-check.js",
+      "types": "./dist/src/integration-e2e-check.d.ts"
+    },
+    "./project-spec-check": {
+      "import": "./dist/src/project-spec-check.js",
+      "types": "./dist/src/project-spec-check.d.ts"
+    }
+  },
+  "dependencies": {
+    "@human-horizon/weft": "link:../weft",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0",
+    "vitest": "^4.1.8"
+  }
+}

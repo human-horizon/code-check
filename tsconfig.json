@@ -1,0 +1,23 @@
+{
+    "compilerOptions": {
+        "target": "ES2022",
+        "module": "ESNext",
+        "moduleResolution": "bundler",
+        "lib": ["ES2022"],
+        "strict": true,
+        "noUncheckedIndexedAccess": true,
+        "esModuleInterop": true,
+        "skipLibCheck": true,
+        "forceConsistentCasingInFileNames": true,
+        "paths": {
+            "code-check": ["./src/index.ts"],
+            "code-check/*": ["./src/*.ts"]
+        },
+        "resolveJsonModule": true,
+        "types": ["node"],
+        "declaration": true,
+        "outDir": "./dist",
+        "rootDir": "."
+    },
+    "include": ["src/**/*", "pipelines/**/*"]
+}
