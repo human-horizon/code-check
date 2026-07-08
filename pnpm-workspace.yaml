@@ -1,0 +1,8 @@
+onlyBuiltDependencies:
+  - '@google/genai'
+  - 'protobufjs'
+minimumReleaseAgeExclude:
+  - '@human-horizon/weft@0.1.0'
+allowBuilds:
+  '@google/genai': set this to true or false
+  protobufjs: set this to true or false

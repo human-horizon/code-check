@@ -1,11 +1,13 @@
 {
-  "name": "code-check",
-  "version": "0.0.1",
+  "name": "@human-horizon/code-check",
+  "version": "0.1.0",
+  "description": "Weft pipelines for keeping code, specs, docs, tests, and translations in sync",
   "type": "module",
   "scripts": {
     "build": "tsc",
     "check": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "clean": "rm -rf dist"
   },
   "exports": {
     ".": {
@@ -37,8 +39,37 @@
       "types": "./dist/src/project-spec-check.d.ts"
     }
   },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/human-horizon/code-check.git"
+  },
+  "homepage": "https://github.com/human-horizon/code-check",
+  "bugs": {
+    "url": "https://github.com/human-horizon/code-check/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "MIT",
+  "keywords": [
+    "code-check",
+    "specs",
+    "docs",
+    "tests",
+    "pipeline",
+    "weft",
+    "ai",
+    "agent"
+  ],
   "dependencies": {
-    "@human-horizon/weft": "link:../weft",
+    "@human-horizon/weft": "^0.1.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {

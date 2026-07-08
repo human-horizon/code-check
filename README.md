@@ -128,14 +128,14 @@ Generates free-form project specs `specs/*.md` in Russian. The agent reads all s
 ### CLI (via weft)
 
 ```bash
-cd /Users/a/Space/Projects/HumanHorizon/code-check
+cd /path/to/code-check
 
-~/Space/Tools/bin/weft run pipelines/check-specs.ts /path/to/project
-~/Space/Tools/bin/weft run pipelines/check-docs.ts /path/to/project
-~/Space/Tools/bin/weft run pipelines/check-doc-translations.ts /path/to/project
-~/Space/Tools/bin/weft run pipelines/check-tests.ts /path/to/project
-~/Space/Tools/bin/weft run pipelines/check-integration-e2e.ts /path/to/project
-~/Space/Tools/bin/weft run pipelines/check-project-specs.ts /path/to/project
+weft run pipelines/check-specs.ts /path/to/project
+weft run pipelines/check-docs.ts /path/to/project
+weft run pipelines/check-doc-translations.ts /path/to/project
+weft run pipelines/check-tests.ts /path/to/project
+weft run pipelines/check-integration-e2e.ts /path/to/project
+weft run pipelines/check-project-specs.ts /path/to/project
 ```
 
 ### Library
@@ -198,7 +198,7 @@ interface DocTranslationCheckReport {
 ## Development
 
 ```bash
-cd /Users/a/Space/Projects/HumanHorizon/code-check
+cd /path/to/code-check
 pnpm install
 pnpm test       # vitest (25 tests)
 pnpm check      # tsc --noEmit
