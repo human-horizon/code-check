@@ -1,31 +1,16 @@
-import { mkdir, writeFile, readFile, readdir, copyFile } from 'node:fs/promises'
+import { mkdir, readdir, copyFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-const DIRS = [
-    'code-specs',
-    'docs/en',
-    'docs/ru',
-    'specs',
-    'tests/integration',
-    'tests/e2e',
-]
-
-const GITIGNORE_CONTENT = `node_modules
-dist
-.DS_Store
-*.tsbuildinfo
-`
-
 function packageDir(): string {
     const dir = path.dirname(fileURLToPath(import.meta.url))
-    // cli.js is at dist/src/cli.js, package root is two levels up
     return path.resolve(dir, '..', '..')
 }
 
-async function copyPipelines(targetProject: string): Promise<void> {
+async function install(projectPath: string): Promise<void> {
+    const absPath = path.resolve(projectPath)
     const srcPipelines = path.join(packageDir(), 'pipelines')
-    const dstPipelines = path.join(targetProject, '.lore', 'weft', 'pipelines', 'code-check')
+    const dstPipelines = path.join(absPath, '.lore', 'weft', 'pipelines', 'code-check')
 
     await mkdir(dstPipelines, { recursive: true })
 
@@ -39,26 +24,8 @@ async function copyPipelines(targetProject: string): Promise<void> {
         }
     }
 
-    console.log(`  pipelines: .lore/weft/pipelines/code-check/ (${entries.filter(e => e.endsWith('.ts') || e.endsWith('.js')).length} files)`)
-}
-
-async function install(projectPath: string): Promise<void> {
-    const absPath = path.resolve(projectPath)
-
-    for (const dir of DIRS) {
-        await mkdir(path.join(absPath, dir), { recursive: true })
-    }
-
-    const gitignorePath = path.join(absPath, '.gitignore')
-    try {
-        await writeFile(gitignorePath, GITIGNORE_CONTENT, { flag: 'wx' })
-    } catch {
-        // .gitignore already exists, skip
-    }
-
-    await copyPipelines(absPath)
-
-    console.log(`\ncode-check installed at ${absPath}`)
+    const count = entries.filter(e => e.endsWith('.ts') || e.endsWith('.js')).length
+    console.log(`code-check pipelines installed at ${dstPipelines} (${count} files)`)
 }
 
 async function main(args: string[]): Promise<void> {
