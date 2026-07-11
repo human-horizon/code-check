@@ -1,6 +1,6 @@
 {
   "name": "@human-horizon/code-check",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Weft pipelines for keeping code, specs, docs, tests, and translations in sync",
   "type": "module",
   "scripts": {
@@ -9,6 +9,9 @@
     "test": "vitest run",
     "clean": "rm -rf dist",
     "pack:dry": "pnpm pack --dry-run"
+  },
+  "bin": {
+    "code-check": "./dist/src/cli.js"
   },
   "exports": {
     ".": {
