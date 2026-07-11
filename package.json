@@ -1,6 +1,6 @@
 {
   "name": "@human-horizon/code-check",
-  "version": "0.2.7",
+  "version": "0.2.8",
   "description": "Weft pipelines for keeping code, specs, docs, tests, and translations in sync",
   "type": "module",
   "scripts": {

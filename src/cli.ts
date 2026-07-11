@@ -31,7 +31,7 @@ async function install(projectPath: string): Promise<void> {
 
     // Install npm package
     const hasPnpm = await readFile(path.join(weftDir, 'pnpm-lock.yaml')).then(() => true).catch(() => false)
-    const cmd = hasPnpm ? 'pnpm add' : 'npm install'
+    const cmd = hasPnpm ? 'pnpm add --config.minimumReleaseAge=0' : 'npm install'
     console.log(`  installing: ${cmd} @human-horizon/code-check`)
     execSync(`${cmd} @human-horizon/code-check`, { cwd: weftDir, stdio: 'inherit' })
 
