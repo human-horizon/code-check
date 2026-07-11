@@ -1,4 +1,4 @@
-import { runDocTranslationCheck } from 'code-check';
+import { runDocTranslationCheck } from '@human-horizon/code-check';
 export async function main(args) {
     const projectPath = args[0] ?? process.cwd();
     const result = await runDocTranslationCheck(projectPath);

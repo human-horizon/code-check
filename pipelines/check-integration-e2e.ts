@@ -1,4 +1,4 @@
-import { runIntegrationE2eCheck } from 'code-check'
+import { runIntegrationE2eCheck } from '@human-horizon/code-check'
 
 export async function main(args: string[]): Promise<void> {
     const projectPath = args[0] ?? process.cwd()

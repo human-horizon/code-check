@@ -1,4 +1,4 @@
-import { runSpecCheck } from 'code-check';
+import { runSpecCheck } from '@human-horizon/code-check';
 export async function main(args) {
     const projectPath = args[0] ?? process.cwd();
     const result = await runSpecCheck(projectPath);

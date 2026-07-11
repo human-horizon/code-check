@@ -10,8 +10,8 @@
         "skipLibCheck": true,
         "forceConsistentCasingInFileNames": true,
         "paths": {
-            "code-check": ["./src/index.ts"],
-            "code-check/*": ["./src/*.ts"]
+            "@human-horizon/code-check": ["./src/index.ts"],
+            "@human-horizon/code-check/*": ["./src/*.ts"]
         },
         "resolveJsonModule": true,
         "types": ["node"],

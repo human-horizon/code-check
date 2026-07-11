@@ -1,4 +1,4 @@
-import { runProjectSpecCheck } from 'code-check'
+import { runProjectSpecCheck } from '@human-horizon/code-check'
 
 export async function main(args: string[]): Promise<void> {
     const projectPath = args[0] ?? process.cwd()
