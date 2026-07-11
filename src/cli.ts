@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { mkdir, readdir, copyFile } from 'node:fs/promises'
+import { mkdir, readdir, copyFile, readFile } from 'node:fs/promises'
 import { execSync } from 'node:child_process'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -30,8 +30,10 @@ async function install(projectPath: string): Promise<void> {
     console.log(`  pipelines: .lore/weft/pipelines/code-check/ (${count} files)`)
 
     // Install npm package
-    console.log(`  installing: @human-horizon/code-check`)
-    execSync('npm install @human-horizon/code-check', { cwd: weftDir, stdio: 'inherit' })
+    const hasPnpm = await readFile(path.join(weftDir, 'pnpm-lock.yaml')).then(() => true).catch(() => false)
+    const cmd = hasPnpm ? 'pnpm add' : 'npm install'
+    console.log(`  installing: ${cmd} @human-horizon/code-check`)
+    execSync(`${cmd} @human-horizon/code-check`, { cwd: weftDir, stdio: 'inherit' })
 
     console.log(`\ncode-check installed at ${absPath}`)
 }
