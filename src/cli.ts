@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { mkdir, readdir, copyFile } from 'node:fs/promises'
+import { execSync } from 'node:child_process'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -12,9 +13,10 @@ async function install(projectPath: string): Promise<void> {
     const absPath = path.resolve(projectPath)
     const srcPipelines = path.join(packageDir(), 'pipelines')
     const dstPipelines = path.join(absPath, '.lore', 'weft', 'pipelines', 'code-check')
+    const weftDir = path.join(absPath, '.lore', 'weft')
 
+    // Copy pipeline files
     await mkdir(dstPipelines, { recursive: true })
-
     const entries = await readdir(srcPipelines)
     for (const entry of entries) {
         if (entry.endsWith('.ts') || entry.endsWith('.js') || entry.endsWith('.d.ts')) {
@@ -24,9 +26,14 @@ async function install(projectPath: string): Promise<void> {
             )
         }
     }
-
     const count = entries.filter(e => e.endsWith('.ts') || e.endsWith('.js')).length
-    console.log(`code-check pipelines installed at ${dstPipelines} (${count} files)`)
+    console.log(`  pipelines: .lore/weft/pipelines/code-check/ (${count} files)`)
+
+    // Install npm package
+    console.log(`  installing: @human-horizon/code-check`)
+    execSync('npm install @human-horizon/code-check', { cwd: weftDir, stdio: 'inherit' })
+
+    console.log(`\ncode-check installed at ${absPath}`)
 }
 
 async function main(args: string[]): Promise<void> {
