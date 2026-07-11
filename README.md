@@ -9,7 +9,7 @@ All agents use `model: 'free'` (local model `qwen-3.5-9b`). Agents write files d
 ```
 code-check/
 ├── src/
-│   ├── index.ts                    # re-exports all runners
+│   ├── index.ts                   # re-exports all runners
 │   ├── artifact-sync.ts           # generic code ↔ artifact sync engine
 │   ├── doc-template.ts            # unified HTML template (dark theme, highlight.js)
 │   ├── spec-check.ts              # code-specs ↔ code
