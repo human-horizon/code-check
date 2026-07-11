@@ -1,13 +1,14 @@
 {
   "name": "@human-horizon/code-check",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Weft pipelines for keeping code, specs, docs, tests, and translations in sync",
   "type": "module",
   "scripts": {
     "build": "tsc",
     "check": "tsc --noEmit",
     "test": "vitest run",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "pack:dry": "pnpm pack --dry-run"
   },
   "exports": {
     ".": {
@@ -40,7 +41,8 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md"
   ],
   "sideEffects": false,
   "engines": {
@@ -69,7 +71,7 @@
     "agent"
   ],
   "dependencies": {
-    "@human-horizon/weft": "^0.1.0",
+    "@human-horizon/weft": "^0.3.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
