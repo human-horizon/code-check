@@ -1,5 +1,6 @@
-import { mkdir, writeFile } from 'node:fs/promises'
+import { mkdir, writeFile, readFile, readdir, copyFile } from 'node:fs/promises'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 const DIRS = [
     'code-specs',
@@ -16,6 +17,31 @@ dist
 *.tsbuildinfo
 `
 
+function packageDir(): string {
+    const dir = path.dirname(fileURLToPath(import.meta.url))
+    // cli.js is at dist/src/cli.js, package root is two levels up
+    return path.resolve(dir, '..', '..')
+}
+
+async function copyPipelines(targetProject: string): Promise<void> {
+    const srcPipelines = path.join(packageDir(), 'pipelines')
+    const dstPipelines = path.join(targetProject, '.lore', 'weft', 'pipelines', 'code-check')
+
+    await mkdir(dstPipelines, { recursive: true })
+
+    const entries = await readdir(srcPipelines)
+    for (const entry of entries) {
+        if (entry.endsWith('.ts') || entry.endsWith('.js') || entry.endsWith('.d.ts')) {
+            await copyFile(
+                path.join(srcPipelines, entry),
+                path.join(dstPipelines, entry),
+            )
+        }
+    }
+
+    console.log(`  pipelines: .lore/weft/pipelines/code-check/ (${entries.filter(e => e.endsWith('.ts') || e.endsWith('.js')).length} files)`)
+}
+
 async function install(projectPath: string): Promise<void> {
     const absPath = path.resolve(projectPath)
 
@@ -30,8 +56,9 @@ async function install(projectPath: string): Promise<void> {
         // .gitignore already exists, skip
     }
 
-    console.log(`code-check installed at ${absPath}`)
-    console.log(`  created: ${DIRS.join(', ')}`)
+    await copyPipelines(absPath)
+
+    console.log(`\ncode-check installed at ${absPath}`)
 }
 
 async function main(args: string[]): Promise<void> {
