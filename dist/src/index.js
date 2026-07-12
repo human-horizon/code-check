@@ -1,3 +1,4 @@
+export { runDeadCodeCheck } from './dead-code-check.js';
 export { runSpecCheck } from './spec-check.js';
 export { runDocCheck } from './doc-check.js';
 export { runDocTranslationCheck } from './doc-translation-check.js';
