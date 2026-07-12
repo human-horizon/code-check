@@ -1,6 +1,6 @@
 {
   "name": "@human-horizon/code-check",
-  "version": "0.3.1",
+  "version": "0.3.3",
   "description": "Weft pipelines for keeping code, specs, docs, tests, and translations in sync",
   "type": "module",
   "scripts": {
@@ -39,6 +39,10 @@
     "./integration-e2e-check": {
       "import": "./dist/src/integration-e2e-check.js",
       "types": "./dist/src/integration-e2e-check.d.ts"
+    },
+    "./problem-check": {
+      "import": "./dist/src/problem-check.js",
+      "types": "./dist/src/problem-check.d.ts"
     },
     "./project-spec-check": {
       "import": "./dist/src/project-spec-check.js",

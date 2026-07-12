@@ -9,15 +9,15 @@ const EXCLUDED_DIRS = new Set([
     'problems',
 ])
 
-export interface DeadCodeProblem {
+export interface ProblemEntry {
     path: string
     title: string
     description: string
 }
 
-export interface DeadCodeReport {
+export interface ProblemReport {
     projectPath: string
-    problems: DeadCodeProblem[]
+    problems: ProblemEntry[]
     errors: Array<{ error: string }>
 }
 
@@ -116,7 +116,7 @@ function getArray(obj: object, key: string): unknown[] | undefined {
     return undefined
 }
 
-function parseProblems(value: unknown): DeadCodeProblem[] | null {
+function parseProblems(value: unknown): ProblemEntry[] | null {
     if (typeof value !== 'object' || value === null) {
         return null
     }
@@ -125,7 +125,7 @@ function parseProblems(value: unknown): DeadCodeProblem[] | null {
         return null
     }
 
-    const result: DeadCodeProblem[] = []
+    const result: ProblemEntry[] = []
     for (const item of problems) {
         if (typeof item !== 'object' || item === null) {
             continue
@@ -141,9 +141,9 @@ function parseProblems(value: unknown): DeadCodeProblem[] | null {
     return result
 }
 
-export async function runDeadCodeCheck(
+export async function runProblemCheck(
     projectPath: string,
-): Promise<Result<DeadCodeReport, Error>> {
+): Promise<Result<ProblemReport, Error>> {
     const absoluteProject = path.resolve(projectPath)
 
     const files: Array<{ relPath: string; content: string }> = []
