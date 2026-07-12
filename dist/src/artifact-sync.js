@@ -2,6 +2,7 @@ import { weave } from '@human-horizon/weft';
 import { z } from 'zod';
 import { readdir, stat, readFile } from 'node:fs/promises';
 import path from 'node:path';
+import { HUMAN_HORIZON_PRINCIPLES } from './principles.js';
 const SyncDecisionSchema = z.object({
     action: z.enum([
         'matched',
@@ -33,9 +34,11 @@ function isExcludedFile(relPath) {
     return EXCLUDED_PREFIXES.some((prefix) => base.startsWith(prefix));
 }
 export function detectLang(relPath) {
-    if (relPath.endsWith('.ts') &&
+    if ((relPath.endsWith('.ts') || relPath.endsWith('.tsx')) &&
         !relPath.endsWith('.test.ts') &&
-        !relPath.endsWith('.spec.ts')) {
+        !relPath.endsWith('.spec.ts') &&
+        !relPath.endsWith('.test.tsx') &&
+        !relPath.endsWith('.spec.tsx')) {
         return 'typescript';
     }
     if (relPath.endsWith('.go') && !relPath.endsWith('_test.go')) {
@@ -135,20 +138,18 @@ export function buildSyncTasks(codeFiles, artifactFiles, artifactDir, artifactEx
     }
     return tasks;
 }
-function buildAgentPrompt(projectPath, task, options, codeSpecsPath) {
+function buildAgentPrompt(projectPath, task, options) {
     const artifactType = options.artifactName;
     const languageNote = options.artifactLanguage
         ? `The ${artifactType} must be written in ${options.artifactLanguage}.`
         : '';
+    const principlesBlock = `\n\nHuman Horizon Development Standards:\n${HUMAN_HORIZON_PRINCIPLES}\n`;
     const jsonRules = [
         'Return ONLY a single raw JSON object.',
         'Do NOT wrap the JSON in markdown code blocks and do NOT use triple backticks anywhere in the response.',
         'Do NOT put file content in the JSON response.',
     ].join(' ');
     if (task.kind === 'matched') {
-        const contextBlock = codeSpecsPath
-            ? `\n\nHumanHorizon Development Standards are at: ${codeSpecsPath}\nRead the relevant files from there and follow them.`
-            : '';
         const templateBlock = options.artifactTemplate
             ? [
                 '',
@@ -176,14 +177,11 @@ function buildAgentPrompt(projectPath, task, options, codeSpecsPath) {
             'Return JSON matching the schema: action ("matched" | "updated-code" | "updated-artifact"), targetRelativePath (relative to project root, the file you changed or kept unchanged), description (short human summary).',
             'Example: {"action": "matched", "targetRelativePath": "src/utils.ts", "description": "The code and specification match."}',
             templateBlock,
-            contextBlock,
+            principlesBlock,
         ].join('\n');
     }
     if (task.kind === 'code-only') {
         const expectedArtifact = artifactRelativePathForCode(task.code.relativePath, options.artifactDir, options.artifactExt);
-        const contextBlock = codeSpecsPath
-            ? `\n\nHumanHorizon Development Standards are at: ${codeSpecsPath}\nRead the relevant files from there and follow them.`
-            : '';
         const templateBlock = options.artifactTemplate
             ? [
                 '',
@@ -210,12 +208,9 @@ function buildAgentPrompt(projectPath, task, options, codeSpecsPath) {
             `Return JSON: action "generated-artifact", targetRelativePath "${expectedArtifact}", description (short summary).`,
             `Example: {"action": "generated-artifact", "targetRelativePath": "${expectedArtifact}", "description": "Created specification for utils.ts."}`,
             templateBlock,
-            contextBlock,
+            principlesBlock,
         ].join('\n');
     }
-    const contextBlock = codeSpecsPath
-        ? `\n\nHumanHorizon Development Standards are at: ${codeSpecsPath}\nRead the relevant files from there and follow them.`
-        : '';
     return [
         `You are generating code from a ${artifactType}.`,
         '',
@@ -227,7 +222,7 @@ function buildAgentPrompt(projectPath, task, options, codeSpecsPath) {
         jsonRules,
         'Return JSON: action "generated-code", targetRelativePath (relative to project root, the file you created), description (short summary).',
         'Example: {"action": "generated-code", "targetRelativePath": "src/utils.ts", "description": "Generated TypeScript implementation from specification."}',
-        contextBlock,
+        principlesBlock,
     ].join('\n');
 }
 async function readFileContent(projectPath, relPath) {
@@ -378,23 +373,10 @@ export async function runArtifactSync(options) {
     }
     const tasks = buildSyncTasks(codeFiles, artifactFiles, options.artifactDir, options.artifactExt);
     const beforeMap = await buildBeforeMap(absoluteProject, tasks, options);
-    // Validate HumanHorizon code-specs path if configured
-    if (options.codeSpecsPath) {
-        const resolved = path.resolve(options.codeSpecsPath);
-        try {
-            await stat(resolved);
-        }
-        catch {
-            return {
-                ok: false,
-                error: new Error(`code-specs path not found: ${resolved}`),
-            };
-        }
-    }
     let workflow = weave();
     for (const task of tasks) {
         const key = safeKey(taskId(task));
-        workflow = workflow.prompt(`decision_${key}`, () => buildAgentPrompt(absoluteProject, task, options, options.codeSpecsPath), { model: 'free', schema: SyncDecisionSchema, retry: 3 });
+        workflow = workflow.prompt(`decision_${key}`, () => buildAgentPrompt(absoluteProject, task, options), { model: 'free', schema: SyncDecisionSchema, retry: 3 });
     }
     const finalWorkflow = workflow.step('report', async (ctx) => {
         const decisions = collectDecisions(ctx);

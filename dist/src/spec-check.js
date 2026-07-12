@@ -1,5 +1,4 @@
 import { runArtifactSync, } from './artifact-sync.js';
-const HUMAN_HORIZON_CODE_SPECS = '/Users/a/Space/Projects/HumanHorizon/code-specs';
 export function runSpecCheck(projectPath) {
     return runArtifactSync({
         projectPath,
@@ -7,6 +6,5 @@ export function runSpecCheck(projectPath) {
         artifactExt: '.md',
         artifactName: 'specification',
         artifactLanguage: 'Russian',
-        codeSpecsPath: HUMAN_HORIZON_CODE_SPECS,
     });
 }

@@ -52,8 +52,6 @@ export interface ArtifactSyncOptions {
     artifactExt: string;
     artifactName: 'specification' | 'documentation';
     artifactLanguage?: string;
-    /** Path to HumanHorizon code-specs (development standards) to include as context. */
-    codeSpecsPath?: string;
     /** Full HTML template with {{TITLE}} and {{CONTENT}} placeholders. */
     artifactTemplate?: string;
 }

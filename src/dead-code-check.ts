@@ -60,7 +60,7 @@ async function walk(
 
         if (stats.isDirectory()) {
             await walk(root, relPath, callback)
-        } else if (stats.isFile() && (name.endsWith('.ts') || name.endsWith('.go') || name.endsWith('.rs'))) {
+        } else if (stats.isFile() && (name.endsWith('.ts') || name.endsWith('.tsx') || name.endsWith('.go') || name.endsWith('.rs'))) {
             await callback(relPath, absPath)
         }
     }
