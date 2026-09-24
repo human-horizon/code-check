@@ -326,7 +326,7 @@ export async function runTestCheck(
         workflow = workflow.prompt(
             `decision_${key}`,
             () => buildAgentPrompt(absoluteProject, code, existingTests),
-            { model: 'free', schema: TestDecisionSchema, retry: 3 },
+            { model: 'local', schema: TestDecisionSchema, retry: 3 },
         )
     }
 

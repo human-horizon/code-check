@@ -242,7 +242,7 @@ export async function runDocTranslationCheck(
         workflow = workflow.prompt(
             key,
             () => buildAgentPrompt(absoluteProject, enFile),
-            { model: 'free', schema: DecisionSchema },
+            { model: 'local', schema: DecisionSchema },
         )
     }
 

@@ -551,7 +551,7 @@ export async function runArtifactSync(
         workflow = workflow.prompt(
             `decision_${key}`,
             () => buildAgentPrompt(absoluteProject, task, options),
-            { model: 'free', schema: SyncDecisionSchema, retry: 3 },
+            { model: 'local', schema: SyncDecisionSchema, retry: 3 },
         )
     }
 

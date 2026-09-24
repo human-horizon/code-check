@@ -2,7 +2,7 @@
 
 Weft pipelines for keeping code, specs, docs, tests, and translations in sync across Human Horizon projects.
 
-All agents use `model: 'free'` (local model `qwen-3.5-9b`). Agents write files directly via the `write` tool; the pipeline classifies the result by comparing file state before and after the agent step.
+All agents use `model: 'local'` (mapped in `.lore/weft/.env` as `local=home-pc/qwen-3.5-9b`). Agents write files directly via the `write` tool; the pipeline classifies the result by comparing file state before and after the agent step.
 
 ## Architecture
 
@@ -19,12 +19,13 @@ code-check/
 │   ├── integration-e2e-check.ts   # integration + e2e tests
 │   └── project-spec-check.ts      # specs/*.md from code
 ├── pipelines/
-│   ├── check-specs.ts
-│   ├── check-docs.ts
-│   ├── check-doc-translations.ts
-│   ├── check-tests.ts
-│   ├── check-integration-e2e.ts
-│   └── check-project-specs.ts
+│   ├── generate-specs.ts
+│   ├── generate-docs.ts
+│   ├── generate-doc-translations.ts
+│   ├── generate-tests.ts
+│   ├── generate-integration-e2e.ts
+│   ├── generate-project-specs.ts
+│   └── check-problems.ts
 └── specs/
     └── Spec.md                    # project specification
 ```
@@ -67,18 +68,19 @@ If the agent returns `generated`/`updated` but the file is not on disk, the pipe
 
 | Pipeline | File | Function | Purpose |
 |---|---|---|---|
-| `check-specs` | `pipelines/check-specs.ts` | `runSpecCheck` | Sync `code-specs/` with source |
-| `check-docs` | `pipelines/check-docs.ts` | `runDocCheck` | Generate/sync `docs/en/` |
-| `check-doc-translations` | `pipelines/check-doc-translations.ts` | `runDocTranslationCheck` | Translate `docs/en/` → `docs/ru/` |
-| `check-tests` | `pipelines/check-tests.ts` | `runTestCheck` | Verify unit test coverage |
-| `check-integration-e2e` | `pipelines/check-integration-e2e.ts` | `runIntegrationE2eCheck` | Generate integration/e2e tests |
-| `check-project-specs` | `pipelines/check-project-specs.ts` | `runProjectSpecCheck` | Generate `specs/*.md` |
+| `generate-specs` | `pipelines/generate-specs.ts` | `runSpecCheck` | Sync `code-specs/` with source |
+| `generate-docs` | `pipelines/generate-docs.ts` | `runDocCheck` | Generate/sync `docs/en/` |
+| `generate-doc-translations` | `pipelines/generate-doc-translations.ts` | `runDocTranslationCheck` | Translate `docs/en/` → `docs/ru/` |
+| `generate-tests` | `pipelines/generate-tests.ts` | `runTestCheck` | Verify unit test coverage |
+| `generate-integration-e2e` | `pipelines/generate-integration-e2e.ts` | `runIntegrationE2eCheck` | Generate integration/e2e tests |
+| `generate-project-specs` | `pipelines/generate-project-specs.ts` | `runProjectSpecCheck` | Generate `specs/*.md` |
+| `check-problems` | `pipelines/check-problems.ts` | `runProblemCheck` | Analyze problems/fixes |
 
-### check-specs
+### generate-specs
 
 Scans source files, for each finds or generates `code-specs/<path>.md`. The agent reads the code and writes a specification in Russian describing behavior, public API, types, and implementation details.
 
-### check-docs
+### generate-docs
 
 Scans source files, for each generates `docs/en/<path>.html`. After generation, all HTML files go through post-processing:
 
@@ -88,7 +90,7 @@ Scans source files, for each generates `docs/en/<path>.html`. After generation, 
 4. Highlight signatures: `<div class="signature"><code class="language-*">`
 5. Wrap in unified template (dark theme, highlight.js)
 
-### check-doc-translations
+### generate-doc-translations
 
 For each `docs/en/<path>.html`, reads the existing `docs/ru/<path>.html` (if any) and decides whether translation is needed. The agent:
 
@@ -97,9 +99,9 @@ For each `docs/en/<path>.html`, reads the existing `docs/ru/<path>.html` (if any
 3. If the translation is up to date — does nothing (`matched`)
 4. If the English changed or no translation exists — generates/updates
 
-Post-processing: same as `check-docs`, but with `<html lang="ru">`.
+Post-processing: same as `generate-docs`, but with `<html lang="ru">`.
 
-### check-tests
+### generate-tests
 
 Verifies every source file has a unit test:
 
@@ -109,7 +111,7 @@ Verifies every source file has a unit test:
 
 If a test is missing, the agent generates one.
 
-### check-integration-e2e
+### generate-integration-e2e
 
 Two-stage pipeline:
 
@@ -119,7 +121,7 @@ Two-stage pipeline:
 - `tests/integration/` — based on `code-specs/`
 - `tests/e2e/` — based on `docs/en/`
 
-### check-project-specs
+### generate-project-specs
 
 Generates free-form project specs `specs/*.md` in Russian. The agent reads all source files and `code-specs/`, writes a high-level specification: architecture, design decisions, API overview, data flow.
 
@@ -130,12 +132,12 @@ Generates free-form project specs `specs/*.md` in Russian. The agent reads all s
 ```bash
 cd /path/to/code-check
 
-weft run pipelines/check-specs.ts /path/to/project
-weft run pipelines/check-docs.ts /path/to/project
-weft run pipelines/check-doc-translations.ts /path/to/project
-weft run pipelines/check-tests.ts /path/to/project
-weft run pipelines/check-integration-e2e.ts /path/to/project
-weft run pipelines/check-project-specs.ts /path/to/project
+weft run pipelines/generate-specs.ts /path/to/project
+weft run pipelines/generate-docs.ts /path/to/project
+weft run pipelines/generate-doc-translations.ts /path/to/project
+weft run pipelines/generate-tests.ts /path/to/project
+weft run pipelines/generate-integration-e2e.ts /path/to/project
+weft run pipelines/generate-project-specs.ts /path/to/project
 ```
 
 ### Library
@@ -182,7 +184,7 @@ interface ArtifactSyncReport {
 }
 ```
 
-For `check-doc-translations`:
+For `generate-doc-translations`:
 
 ```typescript
 interface DocTranslationCheckReport {

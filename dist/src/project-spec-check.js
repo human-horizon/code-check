@@ -123,7 +123,7 @@ export async function runProjectSpecCheck(projectPath) {
         beforeMap.set(spec.relativePath, await readFileContent(path.join(absoluteProject, spec.relativePath)));
     }
     const workflow = weave()
-        .prompt('decision', () => buildAgentPrompt(absoluteProject, codeFiles, codeSpecs, existingSpecs), { model: 'free', schema: DecisionSchema })
+        .prompt('decision', () => buildAgentPrompt(absoluteProject, codeFiles, codeSpecs, existingSpecs), { model: 'local', schema: DecisionSchema })
         .step('report', async (ctx) => {
         const claimedFiles = parseDecision(ctx.decision) ?? [];
         const afterSpecs = await scanProjectSpecFiles(absoluteProject);

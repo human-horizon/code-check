@@ -181,8 +181,8 @@ export async function runIntegrationE2eCheck(projectPath) {
         };
     }
     let workflow = weave();
-    workflow = workflow.prompt('integration_plan', () => buildIntegrationPlanPrompt(absoluteProject, codeFiles, specFiles), { model: 'free', schema: PlanSchema });
-    workflow = workflow.prompt('e2e_plan', () => buildE2ePlanPrompt(absoluteProject, docFiles), { model: 'free', schema: PlanSchema });
+    workflow = workflow.prompt('integration_plan', () => buildIntegrationPlanPrompt(absoluteProject, codeFiles, specFiles), { model: 'local', schema: PlanSchema });
+    workflow = workflow.prompt('e2e_plan', () => buildE2ePlanPrompt(absoluteProject, docFiles), { model: 'local', schema: PlanSchema });
     const finalWorkflow = workflow.step('generate', async (ctx) => {
         if (!hasTestsField(ctx.integration_plan)) {
             return {
@@ -219,7 +219,7 @@ export async function runIntegrationE2eCheck(projectPath) {
             await ensureTestDir(absoluteProject, test.path);
             const key = `integration_${safeKey(test.path)}`;
             const testWorkflow = weave()
-                .prompt(key, () => buildIntegrationTestPrompt(absoluteProject, test.path, test.description, codeFiles, specFiles), { model: 'free', schema: TestFileSchema });
+                .prompt(key, () => buildIntegrationTestPrompt(absoluteProject, test.path, test.description, codeFiles, specFiles), { model: 'local', schema: TestFileSchema });
             try {
                 const testResult = await testWorkflow.build().run({});
                 const decision = getTestFile(testResult[key]);
@@ -247,7 +247,7 @@ export async function runIntegrationE2eCheck(projectPath) {
             await ensureTestDir(absoluteProject, test.path);
             const key = `e2e_${safeKey(test.path)}`;
             const testWorkflow = weave()
-                .prompt(key, () => buildE2eTestPrompt(absoluteProject, test.path, test.description, docFiles), { model: 'free', schema: TestFileSchema });
+                .prompt(key, () => buildE2eTestPrompt(absoluteProject, test.path, test.description, docFiles), { model: 'local', schema: TestFileSchema });
             try {
                 const testResult = await testWorkflow.build().run({});
                 const decision = getTestFile(testResult[key]);

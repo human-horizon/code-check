@@ -173,7 +173,7 @@ export async function runProblemCheck(
         .prompt(
             'analysis',
             () => buildAgentPrompt(absoluteProject, files),
-            { model: 'free', schema: ProblemSchema },
+            { model: 'local', schema: ProblemSchema },
         )
         .step('report', async (ctx) => {
             const problems = parseProblems(ctx.analysis)

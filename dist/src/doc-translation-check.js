@@ -180,7 +180,7 @@ export async function runDocTranslationCheck(projectPath) {
     let workflow = weave();
     for (const enFile of enFiles) {
         const key = `translation_${enFile.relativePath.replace(/[^a-zA-Z0-9]/g, '_')}`;
-        workflow = workflow.prompt(key, () => buildAgentPrompt(absoluteProject, enFile), { model: 'free', schema: DecisionSchema });
+        workflow = workflow.prompt(key, () => buildAgentPrompt(absoluteProject, enFile), { model: 'local', schema: DecisionSchema });
     }
     const finalWorkflow = workflow.step('report', async (ctx) => {
         const generated = [];

@@ -178,7 +178,7 @@ export async function runProjectSpecCheck(
         .prompt(
             'decision',
             () => buildAgentPrompt(absoluteProject, codeFiles, codeSpecs, existingSpecs),
-            { model: 'free', schema: DecisionSchema },
+            { model: 'local', schema: DecisionSchema },
         )
         .step('report', async (ctx) => {
             const claimedFiles = parseDecision(ctx.decision) ?? []

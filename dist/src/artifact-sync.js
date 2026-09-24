@@ -376,7 +376,7 @@ export async function runArtifactSync(options) {
     let workflow = weave();
     for (const task of tasks) {
         const key = safeKey(taskId(task));
-        workflow = workflow.prompt(`decision_${key}`, () => buildAgentPrompt(absoluteProject, task, options), { model: 'free', schema: SyncDecisionSchema, retry: 3 });
+        workflow = workflow.prompt(`decision_${key}`, () => buildAgentPrompt(absoluteProject, task, options), { model: 'local', schema: SyncDecisionSchema, retry: 3 });
     }
     const finalWorkflow = workflow.step('report', async (ctx) => {
         const decisions = collectDecisions(ctx);

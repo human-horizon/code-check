@@ -240,7 +240,7 @@ export async function runTestCheck(projectPath) {
         const key = safeKey(code.relativePath);
         const existingTests = existingTestsMap.get(code.relativePath) ?? null;
         await ensureTestFile(absoluteProject, code);
-        workflow = workflow.prompt(`decision_${key}`, () => buildAgentPrompt(absoluteProject, code, existingTests), { model: 'free', schema: TestDecisionSchema, retry: 3 });
+        workflow = workflow.prompt(`decision_${key}`, () => buildAgentPrompt(absoluteProject, code, existingTests), { model: 'local', schema: TestDecisionSchema, retry: 3 });
     }
     const finalWorkflow = workflow.step('report', async (ctx) => {
         const pairs = collectDecisions(ctx);

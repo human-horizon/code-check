@@ -1,6 +1,6 @@
 {
   "name": "@human-horizon/code-check",
-  "version": "0.3.3",
+  "version": "0.4.2",
   "description": "Weft pipelines for keeping code, specs, docs, tests, and translations in sync",
   "type": "module",
   "scripts": {
@@ -81,7 +81,7 @@
     "agent"
   ],
   "dependencies": {
-    "@human-horizon/weft": "^0.3.0",
+    "@human-horizon/weft": "^0.6.5",
     "zod": "^4.4.3"
   },
   "devDependencies": {

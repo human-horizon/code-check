@@ -247,13 +247,13 @@ export async function runIntegrationE2eCheck(
     workflow = workflow.prompt(
         'integration_plan',
         () => buildIntegrationPlanPrompt(absoluteProject, codeFiles, specFiles),
-        { model: 'free', schema: PlanSchema },
+        { model: 'local', schema: PlanSchema },
     )
 
     workflow = workflow.prompt(
         'e2e_plan',
         () => buildE2ePlanPrompt(absoluteProject, docFiles),
-        { model: 'free', schema: PlanSchema },
+        { model: 'local', schema: PlanSchema },
     )
 
     const finalWorkflow = workflow.step('generate', async (ctx) => {
@@ -304,7 +304,7 @@ export async function runIntegrationE2eCheck(
                         codeFiles,
                         specFiles,
                     ),
-                    { model: 'free', schema: TestFileSchema },
+                    { model: 'local', schema: TestFileSchema },
                 )
 
             try {
@@ -338,7 +338,7 @@ export async function runIntegrationE2eCheck(
                 .prompt(
                     key,
                     () => buildE2eTestPrompt(absoluteProject, test.path, test.description, docFiles),
-                    { model: 'free', schema: TestFileSchema },
+                    { model: 'local', schema: TestFileSchema },
                 )
 
             try {
