@@ -1,4 +1,4 @@
-import { runProblemCheck } from '@human-horizon/code-check'
+import { runProblemCheck } from "@human-horizon/code-check"
 
 export async function main(args: string[]): Promise<void> {
     const projectPath = args[0] ?? process.cwd()

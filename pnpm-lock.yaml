@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@human-horizon/weft':
-        specifier: ^0.5.6
-        version: 0.5.6
+        specifier: ^0.6.5
+        version: 0.6.8
       zod:
         specifier: ^4.4.3
         version: 4.4.3
@@ -36,8 +36,8 @@ packages:
   '@emnapi/wasi-threads@1.2.2':
     resolution: {integrity: sha512-c95qOXkHdydNKhscBTebqEC1CVAZpyqOfVfBzQ1qgzyl3gfeldUjIggDbIZgDKsHLgnsM+igH7TJ/eAasaVuMA==}
 
-  '@human-horizon/weft@0.5.6':
-    resolution: {integrity: sha512-lega+og5JQ/1n32tP0GAAcVQuNMzLZI9YV8WP41btfmH4p1fIpeAEMvolVQw4bPMG0JJ4vSeP3i1U6U1KBXkrA==}
+  '@human-horizon/weft@0.6.8':
+    resolution: {integrity: sha512-YDuTqXNXKk05kUbU68Rj5AjRqhlzB+kZrOJlqwpeHY084xd2Q/0JubtoSkCtgNWYLp34JptIPGH7bZYqTsN48w==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -504,7 +504,7 @@ snapshots:
       tslib: 2.8.1
     optional: true
 
-  '@human-horizon/weft@0.5.6':
+  '@human-horizon/weft@0.6.8':
     dependencies:
       zod: 4.4.3
 

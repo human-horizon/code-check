@@ -234,7 +234,7 @@ export async function runIntegrationE2eCheck(
     try {
         codeFiles = await scanCodeFiles(absoluteProject)
         specFiles = await scanArtifactFiles(absoluteProject, 'code-specs', '.md')
-        docFiles = await scanArtifactFiles(absoluteProject, 'docs/en', '.html')
+        docFiles = await scanArtifactFiles(absoluteProject, 'docs', '.md', ['ru'])
     } catch (error) {
         return {
             ok: false,
@@ -247,13 +247,13 @@ export async function runIntegrationE2eCheck(
     workflow = workflow.prompt(
         'integration_plan',
         () => buildIntegrationPlanPrompt(absoluteProject, codeFiles, specFiles),
-        { model: 'local', schema: PlanSchema },
+        { model: 'code-check-model', schema: PlanSchema },
     )
 
     workflow = workflow.prompt(
         'e2e_plan',
         () => buildE2ePlanPrompt(absoluteProject, docFiles),
-        { model: 'local', schema: PlanSchema },
+        { model: 'code-check-model', schema: PlanSchema },
     )
 
     const finalWorkflow = workflow.step('generate', async (ctx) => {
@@ -304,7 +304,7 @@ export async function runIntegrationE2eCheck(
                         codeFiles,
                         specFiles,
                     ),
-                    { model: 'local', schema: TestFileSchema },
+                    { model: 'code-check-model', schema: TestFileSchema },
                 )
 
             try {
@@ -338,7 +338,7 @@ export async function runIntegrationE2eCheck(
                 .prompt(
                     key,
                     () => buildE2eTestPrompt(absoluteProject, test.path, test.description, docFiles),
-                    { model: 'local', schema: TestFileSchema },
+                    { model: 'code-check-model', schema: TestFileSchema },
                 )
 
             try {

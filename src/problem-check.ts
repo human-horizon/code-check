@@ -1,12 +1,22 @@
-import { readdir, stat, readFile, writeFile, mkdir } from 'node:fs/promises'
-import path from 'node:path'
-import { weave } from '@human-horizon/weft'
-import { z } from 'zod'
+import { readdir, stat, readFile, writeFile, mkdir } from "node:fs/promises"
+import path from "node:path"
+import { weave } from "@human-horizon/weft"
+import { z } from "zod"
 
 const EXCLUDED_DIRS = new Set([
-    'node_modules', 'dist', '.git', '.ai', '.lore', '.vscode',
-    'coverage', 'target', 'build', 'out', 'tmp', 'temp',
-    'problems',
+    "node_modules",
+    "dist",
+    ".git",
+    ".ai",
+    ".lore",
+    ".vscode",
+    "coverage",
+    "target",
+    "build",
+    "out",
+    "tmp",
+    "temp",
+    "problems",
 ])
 
 export interface ProblemEntry {
@@ -22,15 +32,16 @@ export interface ProblemReport {
 }
 
 export type Result<T, E = Error> =
-    | { ok: true; value: T }
-    | { ok: false; error: E }
+    { ok: true; value: T } | { ok: false; error: E }
 
 const ProblemSchema = z.object({
-    problems: z.array(z.object({
-        fileName: z.string(),
-        title: z.string(),
-        description: z.string(),
-    })),
+    problems: z.array(
+        z.object({
+            fileName: z.string(),
+            title: z.string(),
+            description: z.string(),
+        }),
+    ),
 })
 
 async function walk(
@@ -47,7 +58,7 @@ async function walk(
     }
 
     for (const name of entries) {
-        if (name.startsWith('.') && name !== '.') {
+        if (name.startsWith(".") && name !== ".") {
             continue
         }
         if (EXCLUDED_DIRS.has(name)) {
@@ -60,47 +71,56 @@ async function walk(
 
         if (stats.isDirectory()) {
             await walk(root, relPath, callback)
-        } else if (stats.isFile() && (name.endsWith('.ts') || name.endsWith('.tsx') || name.endsWith('.go') || name.endsWith('.rs'))) {
+        } else if (
+            stats.isFile() &&
+            (name.endsWith(".ts") ||
+                name.endsWith(".tsx") ||
+                name.endsWith(".go") ||
+                name.endsWith(".rs"))
+        ) {
             await callback(relPath, absPath)
         }
     }
 }
 
-function buildAgentPrompt(projectPath: string, files: Array<{ relPath: string; content: string }>): string {
-    const fileBlocks = files.map(f =>
-        `--- ${f.relPath} ---\n${f.content}`
-    ).join('\n\n')
+function buildAgentPrompt(
+    projectPath: string,
+    files: Array<{ relPath: string; content: string }>,
+): string {
+    const fileBlocks = files
+        .map((f) => `--- ${f.relPath} ---\n${f.content}`)
+        .join("\n\n")
 
     return [
-        'You are analyzing a codebase for problems: dead code, outdated code, unused code, deprecated patterns, bugs, and design issues.',
+        "You are analyzing a codebase for problems: dead code, outdated code, unused code, deprecated patterns, bugs, and design issues.",
         `Project path: ${projectPath}`,
-        '',
-        'Here are all source files:',
-        '',
+        "",
+        "Here are all source files:",
+        "",
         fileBlocks,
-        '',
-        'Analyze the codebase thoroughly.',
-        'For each problem you find, write a markdown file at:',
+        "",
+        "Analyze the codebase thoroughly.",
+        "For each problem you find, write a markdown file at:",
         `  ${projectPath}/problems/<short-name>.md`,
-        '',
-        'Each problem file should contain:',
-        '- Title (H1)',
-        '- Severity: critical / high / medium / low',
-        '- Affected files',
-        '- Description of the problem',
-        '- Suggested fix',
-        '',
-        'IMPORTANT: First use the write tool to write each problem file. Only after writing all files, return the JSON.',
-        'Do NOT return JSON before writing the files.',
-        'Return ONLY a single raw JSON object.',
-        'Do NOT wrap the JSON in markdown code blocks.',
+        "",
+        "Each problem file should contain:",
+        "- Title (H1)",
+        "- Severity: critical / high / medium / low",
+        "- Affected files",
+        "- Description of the problem",
+        "- Suggested fix",
+        "",
+        "IMPORTANT: First use the write tool to write each problem file. Only after writing all files, return the JSON.",
+        "Do NOT return JSON before writing the files.",
+        "Return ONLY a single raw JSON object.",
+        "Do NOT wrap the JSON in markdown code blocks.",
         'Return JSON: { "problems": [ { "fileName": "short-name.md", "title": "Problem title", "description": "one-line summary" } ] }.',
-    ].join('\n')
+    ].join("\n")
 }
 
 function getString(obj: object, key: string): string | undefined {
     for (const [k, value] of Object.entries(obj)) {
-        if (k === key && typeof value === 'string') {
+        if (k === key && typeof value === "string") {
             return value
         }
     }
@@ -117,22 +137,22 @@ function getArray(obj: object, key: string): unknown[] | undefined {
 }
 
 function parseProblems(value: unknown): ProblemEntry[] | null {
-    if (typeof value !== 'object' || value === null) {
+    if (typeof value !== "object" || value === null) {
         return null
     }
-    const problems = getArray(value, 'problems')
+    const problems = getArray(value, "problems")
     if (!problems) {
         return null
     }
 
     const result: ProblemEntry[] = []
     for (const item of problems) {
-        if (typeof item !== 'object' || item === null) {
+        if (typeof item !== "object" || item === null) {
             continue
         }
-        const fileName = getString(item, 'fileName')
-        const title = getString(item, 'title')
-        const description = getString(item, 'description')
+        const fileName = getString(item, "fileName")
+        const title = getString(item, "title")
+        const description = getString(item, "description")
         if (!fileName || !title || !description) {
             continue
         }
@@ -148,8 +168,8 @@ export async function runProblemCheck(
 
     const files: Array<{ relPath: string; content: string }> = []
     try {
-        await walk(absoluteProject, '', async (relPath, absPath) => {
-            const content = await readFile(absPath, 'utf-8')
+        await walk(absoluteProject, "", async (relPath, absPath) => {
+            const content = await readFile(absPath, "utf-8")
             files.push({ relPath, content })
         })
     } catch (error) {
@@ -167,21 +187,20 @@ export async function runProblemCheck(
     }
 
     // Ensure problems directory exists
-    await mkdir(path.join(absoluteProject, 'problems'), { recursive: true })
+    await mkdir(path.join(absoluteProject, "problems"), { recursive: true })
 
     const workflow = weave<Record<string, never>>()
-        .prompt(
-            'analysis',
-            () => buildAgentPrompt(absoluteProject, files),
-            { model: 'local', schema: ProblemSchema },
-        )
-        .step('report', async (ctx) => {
+        .prompt("analysis", () => buildAgentPrompt(absoluteProject, files), {
+            model: "code-check-model",
+            schema: ProblemSchema,
+        })
+        .step("report", async (ctx) => {
             const problems = parseProblems(ctx.analysis)
             if (!problems) {
                 return {
                     projectPath: absoluteProject,
                     problems: [],
-                    errors: [{ error: 'Invalid response from agent' }],
+                    errors: [{ error: "Invalid response from agent" }],
                 }
             }
 

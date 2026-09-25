@@ -2,7 +2,7 @@
 
 Weft pipelines for keeping code, specs, docs, tests, and translations in sync across Human Horizon projects.
 
-All agents use `model: 'local'` (mapped in `.lore/weft/.env` as `local=home-pc/qwen-3.5-9b`). Agents write files directly via the `write` tool; the pipeline classifies the result by comparing file state before and after the agent step.
+All agents use `model: 'code-check-model'` (configured in `.lore/weft/.env`). Agents write files directly via the `write` tool; the pipeline classifies the result by comparing file state before and after the agent step.
 
 ## Architecture
 
@@ -11,21 +11,21 @@ code-check/
 ├── src/
 │   ├── index.ts                   # re-exports all runners
 │   ├── artifact-sync.ts           # generic code ↔ artifact sync engine
-│   ├── doc-template.ts            # unified HTML template (dark theme, highlight.js)
+│   ├── doc-template.ts            # legacy HTML template, unused by VitePress pipelines
 │   ├── spec-check.ts              # code-specs ↔ code
-│   ├── doc-check.ts               # docs/en ↔ code + HTML post-processing
-│   ├── doc-translation-check.ts   # docs/ru ← docs/en (translation)
+│   ├── doc-check.ts               # VitePress Markdown ↔ code
+│   ├── doc-translation-check.ts   # docs/ru ← English docs Markdown
 │   ├── test-check.ts              # unit tests next to source
 │   ├── integration-e2e-check.ts   # integration + e2e tests
 │   └── project-spec-check.ts      # specs/*.md from code
-├── pipelines/
-│   ├── generate-specs.ts
-│   ├── generate-docs.ts
-│   ├── generate-doc-translations.ts
-│   ├── generate-tests.ts
-│   ├── generate-integration-e2e.ts
-│   ├── generate-project-specs.ts
-│   └── check-problems.ts
+├── pipelines/                         # Installed in this order with numeric prefixes
+│   ├── generate-specs.ts               # 01-generate-specs.ts
+│   ├── generate-project-specs.ts        # 02-generate-project-specs.ts
+│   ├── generate-tests.ts               # 03-generate-tests.ts
+│   ├── generate-integration-e2e.ts     # 04-generate-integration-e2e.ts
+│   ├── generate-docs.ts                # 05-generate-docs.ts
+│   ├── generate-doc-translations.ts    # 06-generate-doc-translations.ts
+│   └── check-problems.ts               # 07-check-problems.ts
 └── specs/
     └── Spec.md                    # project specification
 ```
@@ -51,57 +51,42 @@ If the agent returns `generated`/`updated` but the file is not on disk, the pipe
 | Directory | Purpose | Language |
 |---|---|---|
 | `code-specs/` | Per-file specs tied to source files | Russian |
-| `docs/en/` | English HTML documentation | English |
-| `docs/ru/` | Russian HTML documentation (translated from `docs/en/`) | Russian |
+| `docs/**/*.md` except `docs/ru/` | English VitePress pages | English |
+| `docs/ru/**/*.md` | Russian VitePress translations | Russian |
 | `specs/` | Free-form project specs (architecture, design, API overview) | Russian |
 | `tests/` | Unit tests next to source; integration/e2e in `tests/integration/` and `tests/e2e/` | — |
 
 ### Conventions
 
 - `code-specs/*.md` and `specs/*.md` — written in Russian
-- `docs/en/*.html` — written in English
-- `docs/ru/*.html` — written in Russian (translated)
+- `docs/**/*.md` except `docs/ru/` and `.vitepress/` — written in English
+- `docs/ru/**/*.md` — written in Russian (translated from the matching English page)
 - Source code — written in English
-- All HTML docs use a unified template: dark theme, highlight.js, `<pre><code class="language-*">`
+- VitePress frontmatter, components, containers, Markdown links, and fenced code blocks are preserved; code-check does not wrap pages in HTML
 
 ## Pipelines
 
-| Pipeline | File | Function | Purpose |
-|---|---|---|---|
-| `generate-specs` | `pipelines/generate-specs.ts` | `runSpecCheck` | Sync `code-specs/` with source |
-| `generate-docs` | `pipelines/generate-docs.ts` | `runDocCheck` | Generate/sync `docs/en/` |
-| `generate-doc-translations` | `pipelines/generate-doc-translations.ts` | `runDocTranslationCheck` | Translate `docs/en/` → `docs/ru/` |
-| `generate-tests` | `pipelines/generate-tests.ts` | `runTestCheck` | Verify unit test coverage |
-| `generate-integration-e2e` | `pipelines/generate-integration-e2e.ts` | `runIntegrationE2eCheck` | Generate integration/e2e tests |
-| `generate-project-specs` | `pipelines/generate-project-specs.ts` | `runProjectSpecCheck` | Generate `specs/*.md` |
-| `check-problems` | `pipelines/check-problems.ts` | `runProblemCheck` | Analyze problems/fixes |
+| Order | Weft filename | Source file | Function | Purpose |
+|---:|---|---|---|---|
+| 1 | `01-generate-specs` | `pipelines/generate-specs.ts` | `runSpecCheck` | Sync `code-specs/` with source |
+| 2 | `02-generate-project-specs` | `pipelines/generate-project-specs.ts` | `runProjectSpecCheck` | Generate `specs/*.md` |
+| 3 | `03-generate-tests` | `pipelines/generate-tests.ts` | `runTestCheck` | Verify unit test coverage |
+| 4 | `04-generate-integration-e2e` | `pipelines/generate-integration-e2e.ts` | `runIntegrationE2eCheck` | Generate integration/e2e tests |
+| 5 | `05-generate-docs` | `pipelines/generate-docs.ts` | `runDocCheck` | Generate/sync English VitePress Markdown in `docs/` |
+| 6 | `06-generate-doc-translations` | `pipelines/generate-doc-translations.ts` | `runDocTranslationCheck` | Translate English Markdown in `docs/` → `docs/ru/` |
+| 7 | `07-check-problems` | `pipelines/check-problems.ts` | `runProblemCheck` | Analyze code problems |
 
-### generate-specs
+The numeric prefixes determine the alphabetical order in `weft list`; these remain independent pipelines and are not automatically chained.
+
+### 01-generate-specs
 
 Scans source files, for each finds or generates `code-specs/<path>.md`. The agent reads the code and writes a specification in Russian describing behavior, public API, types, and implementation details.
 
-### generate-docs
+### 02-generate-project-specs
 
-Scans source files, for each generates `docs/en/<path>.html`. After generation, all HTML files go through post-processing:
+Generates free-form project specs `specs/*.md` in Russian. The agent reads all source files and `code-specs/`, writes a high-level specification: architecture, design decisions, API overview, data flow.
 
-1. Extract content from `<article class="doc-container">`
-2. Remove `<footer>`
-3. Add `class="language-*"` to `<pre><code>` blocks
-4. Highlight signatures: `<div class="signature"><code class="language-*">`
-5. Wrap in unified template (dark theme, highlight.js)
-
-### generate-doc-translations
-
-For each `docs/en/<path>.html`, reads the existing `docs/ru/<path>.html` (if any) and decides whether translation is needed. The agent:
-
-1. Reads the English source
-2. Reads the existing Russian translation
-3. If the translation is up to date — does nothing (`matched`)
-4. If the English changed or no translation exists — generates/updates
-
-Post-processing: same as `generate-docs`, but with `<html lang="ru">`.
-
-### generate-tests
+### 03-generate-tests
 
 Verifies every source file has a unit test:
 
@@ -111,33 +96,55 @@ Verifies every source file has a unit test:
 
 If a test is missing, the agent generates one.
 
-### generate-integration-e2e
+### 04-generate-integration-e2e
 
 Two-stage pipeline:
 
-1. **Plan**: agent reads code, `code-specs`, and `docs/en/`, produces a test plan
+1. **Plan**: agent reads code, `code-specs`, and English Markdown pages under `docs/`, produces a test plan
 2. **Generate**: for each file in the plan, agent writes the test
 
 - `tests/integration/` — based on `code-specs/`
-- `tests/e2e/` — based on `docs/en/`
+- `tests/e2e/` — based on English VitePress Markdown, excluding `docs/ru/`
 
-### generate-project-specs
+### 05-generate-docs
 
-Generates free-form project specs `specs/*.md` in Russian. The agent reads all source files and `code-specs/`, writes a high-level specification: architecture, design decisions, API overview, data flow.
+Scans source files and synchronizes each one with a VitePress Markdown page at `docs/<source-path>.md` (for example, `src/greet.ts` ↔ `docs/src/greet.md`). The English scan excludes `docs/ru/`; hidden VitePress configuration under `docs/.vitepress/` is excluded by the file walker. Standalone pages with no matching source file are left alone rather than converted into source code. The agent writes Markdown directly without an HTML document wrapper.
+
+### 06-generate-doc-translations
+
+For every English page `docs/<path>.md`, reads the existing Russian page `docs/ru/<path>.md` (if present) and decides whether translation is needed. It preserves YAML frontmatter, Markdown, VitePress components/containers, and code; translates visible text and human-facing metadata; localizes internal links according to the site's VitePress locale configuration while preserving external URLs and anchors. No HTML post-processing is applied.
+
+### 07-check-problems
+
+Analyzes source files and records code problems in `problems/`.
 
 ## Usage
 
-### CLI (via weft)
+### Install and update
+
+Run from the project root:
 
 ```bash
-cd /path/to/code-check
+code-check install [project-path]
+code-check update [project-path]
+```
 
-weft run pipelines/generate-specs.ts /path/to/project
-weft run pipelines/generate-docs.ts /path/to/project
-weft run pipelines/generate-doc-translations.ts /path/to/project
-weft run pipelines/generate-tests.ts /path/to/project
-weft run pipelines/generate-integration-e2e.ts /path/to/project
-weft run pipelines/generate-project-specs.ts /path/to/project
+`update` upgrades `@human-horizon/code-check` to `latest` in `.lore/weft` and refreshes the numbered pipeline entry points. `install` also installs the latest package version and synchronizes those entry points.
+
+### CLI (via weft)
+
+After `code-check install`, the numbered entry points appear in `.lore/weft/pipelines/code-check/` and sort in the required order:
+
+```bash
+cd /path/to/project
+
+weft run .lore/weft/pipelines/code-check/01-generate-specs.ts
+weft run .lore/weft/pipelines/code-check/02-generate-project-specs.ts
+weft run .lore/weft/pipelines/code-check/03-generate-tests.ts
+weft run .lore/weft/pipelines/code-check/04-generate-integration-e2e.ts
+weft run .lore/weft/pipelines/code-check/05-generate-docs.ts
+weft run .lore/weft/pipelines/code-check/06-generate-doc-translations.ts
+weft run .lore/weft/pipelines/code-check/07-check-problems.ts
 ```
 
 ### Library
@@ -202,7 +209,7 @@ interface DocTranslationCheckReport {
 ```bash
 cd /path/to/code-check
 pnpm install
-pnpm test       # vitest (25 tests)
+pnpm test       # vitest (28 tests)
 pnpm check      # tsc --noEmit
 pnpm build      # tsc → dist/src/
 ```
@@ -219,4 +226,4 @@ pnpm build      # tsc → dist/src/
 
 - `@human-horizon/weft` — pipeline framework
 - `zod` — agent response validation schemas
-- `highlight.js` — syntax highlighting in HTML docs
+

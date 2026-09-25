@@ -1,8 +1,11 @@
-import { describe, it, expect } from 'vitest'
-import { testFileForCode, buildReport } from './test-check.js'
-import type { CodeFile } from './artifact-sync.js'
+import { describe, it, expect } from "vitest"
+import { testFileForCode, buildReport } from "./test-check.js"
+import type { CodeFile } from "./artifact-sync.js"
 
-function codeFile(relativePath: string, lang: 'typescript' | 'go' | 'rust'): CodeFile {
+function codeFile(
+    relativePath: string,
+    lang: "typescript" | "go" | "rust",
+): CodeFile {
     return {
         lang,
         relativePath,
@@ -10,34 +13,34 @@ function codeFile(relativePath: string, lang: 'typescript' | 'go' | 'rust'): Cod
     }
 }
 
-describe('testFileForCode', () => {
-    it('maps typescript to .test.ts', () => {
-        expect(testFileForCode(codeFile('src/hello.ts', 'typescript'))).toBe(
-            'src/hello.test.ts',
+describe("testFileForCode", () => {
+    it("maps typescript to .test.ts", () => {
+        expect(testFileForCode(codeFile("src/hello.ts", "typescript"))).toBe(
+            "src/hello.test.ts",
         )
     })
 
-    it('maps go to _test.go', () => {
-        expect(testFileForCode(codeFile('src/hello.go', 'go'))).toBe(
-            'src/hello_test.go',
+    it("maps go to _test.go", () => {
+        expect(testFileForCode(codeFile("src/hello.go", "go"))).toBe(
+            "src/hello_test.go",
         )
     })
 
-    it('returns null for rust', () => {
-        expect(testFileForCode(codeFile('src/main.rs', 'rust'))).toBeNull()
+    it("returns null for rust", () => {
+        expect(testFileForCode(codeFile("src/main.rs", "rust"))).toBeNull()
     })
 })
 
-describe('buildReport', () => {
-    it('classifies generated entries', () => {
+describe("buildReport", () => {
+    it("classifies generated entries", () => {
         const report = buildReport(
-            '/project',
+            "/project",
             [],
             [
                 {
-                    path: 'src/hello.test.ts',
-                    action: 'generated-tests',
-                    description: 'ok',
+                    path: "src/hello.test.ts",
+                    action: "generated-tests",
+                    description: "ok",
                 },
             ],
             [],

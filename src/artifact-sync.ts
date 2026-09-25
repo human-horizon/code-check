@@ -1,10 +1,10 @@
-import { weave } from '@human-horizon/weft'
-import { z } from 'zod'
-import { readdir, stat, readFile } from 'node:fs/promises'
-import path from 'node:path'
-import { HUMAN_HORIZON_PRINCIPLES } from './principles.js'
+import { weave } from "@human-horizon/weft"
+import { z } from "zod"
+import { readdir, stat, readFile } from "node:fs/promises"
+import path from "node:path"
+import { HUMAN_HORIZON_PRINCIPLES } from "./principles.js"
 
-export type CodeLang = 'typescript' | 'go' | 'rust'
+export type CodeLang = "typescript" | "go" | "rust"
 
 export interface CodeFile {
     lang: CodeLang
@@ -18,29 +18,29 @@ export interface ArtifactFile {
 }
 
 export interface MatchedTask {
-    kind: 'matched'
+    kind: "matched"
     code: CodeFile
     artifact: ArtifactFile
 }
 
 export interface CodeOnlyTask {
-    kind: 'code-only'
+    kind: "code-only"
     code: CodeFile
 }
 
 export interface ArtifactOnlyTask {
-    kind: 'artifact-only'
+    kind: "artifact-only"
     artifact: ArtifactFile
 }
 
 export type SyncTask = MatchedTask | CodeOnlyTask | ArtifactOnlyTask
 
 export type SyncAction =
-    | 'matched'
-    | 'updated-code'
-    | 'updated-artifact'
-    | 'generated-code'
-    | 'generated-artifact'
+    | "matched"
+    | "updated-code"
+    | "updated-artifact"
+    | "generated-code"
+    | "generated-artifact"
 
 export interface SyncDecision {
     action: SyncAction
@@ -69,44 +69,44 @@ export interface ArtifactSyncOptions {
     projectPath: string
     artifactDir: string
     artifactExt: string
-    artifactName: 'specification' | 'documentation'
+    artifactName: "specification" | "documentation"
     artifactLanguage?: string
-    /** Full HTML template with {{TITLE}} and {{CONTENT}} placeholders. */
-    artifactTemplate?: string
+    artifactInstructions?: string
+    artifactExcludedDirs?: string[]
+    ignoreArtifactOnly?: boolean
 }
 
 export type Result<T, E = Error> =
-    | { ok: true; value: T }
-    | { ok: false; error: E }
+    { ok: true; value: T } | { ok: false; error: E }
 
 const SyncDecisionSchema = z.object({
     action: z.enum([
-        'matched',
-        'updated-code',
-        'updated-artifact',
-        'generated-code',
-        'generated-artifact',
+        "matched",
+        "updated-code",
+        "updated-artifact",
+        "generated-code",
+        "generated-artifact",
     ]),
     targetRelativePath: z.string(),
     description: z.string(),
 })
 
 const EXCLUDED_DIRS = new Set([
-    'node_modules',
-    'dist',
-    '.git',
-    '.ai',
-    '.lore',
-    '.vscode',
-    'coverage',
-    'target',
-    'build',
-    'out',
-    'tmp',
-    'temp',
+    "node_modules",
+    "dist",
+    ".git",
+    ".ai",
+    ".lore",
+    ".vscode",
+    "coverage",
+    "target",
+    "build",
+    "out",
+    "tmp",
+    "temp",
 ])
 
-const EXCLUDED_PREFIXES = ['.', '_']
+const EXCLUDED_PREFIXES = [".", "_"]
 
 function isExcludedFile(relPath: string): boolean {
     const base = path.basename(relPath)
@@ -115,19 +115,19 @@ function isExcludedFile(relPath: string): boolean {
 
 export function detectLang(relPath: string): CodeLang | null {
     if (
-        (relPath.endsWith('.ts') || relPath.endsWith('.tsx')) &&
-        !relPath.endsWith('.test.ts') &&
-        !relPath.endsWith('.spec.ts') &&
-        !relPath.endsWith('.test.tsx') &&
-        !relPath.endsWith('.spec.tsx')
+        (relPath.endsWith(".ts") || relPath.endsWith(".tsx")) &&
+        !relPath.endsWith(".test.ts") &&
+        !relPath.endsWith(".spec.ts") &&
+        !relPath.endsWith(".test.tsx") &&
+        !relPath.endsWith(".spec.tsx")
     ) {
-        return 'typescript'
+        return "typescript"
     }
-    if (relPath.endsWith('.go') && !relPath.endsWith('_test.go')) {
-        return 'go'
+    if (relPath.endsWith(".go") && !relPath.endsWith("_test.go")) {
+        return "go"
     }
-    if (relPath.endsWith('.rs')) {
-        return 'rust'
+    if (relPath.endsWith(".rs")) {
+        return "rust"
     }
     return null
 }
@@ -144,7 +144,7 @@ export function artifactRelativePathForCode(
 ): string {
     return path
         .join(artifactDir, `${removeExt(codeRel)}${artifactExt}`)
-        .replace(/\\/g, '/')
+        .replace(/\\/g, "/")
 }
 
 async function walk(
@@ -156,7 +156,7 @@ async function walk(
     const entries = await readdir(absDir, { withFileTypes: true })
 
     for (const entry of entries) {
-        if (entry.name.startsWith('.') && entry.name !== '.') {
+        if (entry.name.startsWith(".") && entry.name !== ".") {
             continue
         }
         if (EXCLUDED_DIRS.has(entry.name)) {
@@ -176,7 +176,7 @@ async function walk(
 
 export async function scanCodeFiles(projectPath: string): Promise<CodeFile[]> {
     const files: CodeFile[] = []
-    await walk(projectPath, '', (relPath, absPath) => {
+    await walk(projectPath, "", (relPath, absPath) => {
         if (isExcludedFile(relPath)) {
             return
         }
@@ -186,17 +186,30 @@ export async function scanCodeFiles(projectPath: string): Promise<CodeFile[]> {
         }
         files.push({
             lang,
-            relativePath: relPath.replace(/\\/g, '/'),
+            relativePath: relPath.replace(/\\/g, "/"),
             absolutePath: absPath,
         })
     })
     return files
 }
 
+function isExcludedArtifactPath(
+    relPath: string,
+    excludedDirs: readonly string[],
+): boolean {
+    const normalizedPath = relPath.replace(/\\/g, "/")
+    return excludedDirs.some(
+        (excludedDir) =>
+            normalizedPath === excludedDir ||
+            normalizedPath.startsWith(`${excludedDir}/`),
+    )
+}
+
 export async function scanArtifactFiles(
     projectPath: string,
     artifactDir: string,
     artifactExt: string,
+    excludedDirs: readonly string[] = [],
 ): Promise<ArtifactFile[]> {
     const artifactRoot = path.join(projectPath, artifactDir)
     const files: ArtifactFile[] = []
@@ -205,12 +218,15 @@ export async function scanArtifactFiles(
     } catch {
         return files
     }
-    await walk(artifactRoot, '', (relPath, absPath) => {
-        if (!relPath.endsWith(artifactExt)) {
+    await walk(artifactRoot, "", (relPath, absPath) => {
+        if (
+            !relPath.endsWith(artifactExt) ||
+            isExcludedArtifactPath(relPath, excludedDirs)
+        ) {
             return
         }
         files.push({
-            relativePath: path.join(artifactDir, relPath.replace(/\\/g, '/')),
+            relativePath: path.join(artifactDir, relPath.replace(/\\/g, "/")),
             absolutePath: absPath,
         })
     })
@@ -222,6 +238,7 @@ export function buildSyncTasks(
     artifactFiles: ArtifactFile[],
     artifactDir: string,
     artifactExt: string,
+    includeArtifactOnly = true,
 ): SyncTask[] {
     const artifactMap = new Map(artifactFiles.map((a) => [a.relativePath, a]))
     const matchedArtifactRels = new Set<string>()
@@ -235,16 +252,18 @@ export function buildSyncTasks(
         )
         const artifact = artifactMap.get(expectedArtifact)
         if (artifact) {
-            tasks.push({ kind: 'matched', code, artifact })
+            tasks.push({ kind: "matched", code, artifact })
             matchedArtifactRels.add(artifact.relativePath)
         } else {
-            tasks.push({ kind: 'code-only', code })
+            tasks.push({ kind: "code-only", code })
         }
     }
 
-    for (const artifact of artifactFiles) {
-        if (!matchedArtifactRels.has(artifact.relativePath)) {
-            tasks.push({ kind: 'artifact-only', artifact })
+    if (includeArtifactOnly) {
+        for (const artifact of artifactFiles) {
+            if (!matchedArtifactRels.has(artifact.relativePath)) {
+                tasks.push({ kind: "artifact-only", artifact })
+            }
         }
     }
 
@@ -259,95 +278,74 @@ function buildAgentPrompt(
     const artifactType = options.artifactName
     const languageNote = options.artifactLanguage
         ? `The ${artifactType} must be written in ${options.artifactLanguage}.`
-        : ''
+        : ""
+    const artifactInstructions = options.artifactInstructions ?? ""
     const principlesBlock = `\n\nHuman Horizon Development Standards:\n${HUMAN_HORIZON_PRINCIPLES}\n`
     const jsonRules = [
-        'Return ONLY a single raw JSON object.',
-        'Do NOT wrap the JSON in markdown code blocks and do NOT use triple backticks anywhere in the response.',
-        'Do NOT put file content in the JSON response.',
-    ].join(' ')
+        "Return ONLY a single raw JSON object.",
+        "Do NOT wrap the JSON in markdown code blocks and do NOT use triple backticks anywhere in the response.",
+        "Do NOT put file content in the JSON response.",
+    ].join(" ")
 
-    if (task.kind === 'matched') {
-        const templateBlock = options.artifactTemplate
-            ? [
-                '',
-                'The documentation follows a unified HTML template shown below.',
-                'If the existing file does not follow this template, rewrite it using the template.',
-                'Replace {{TITLE}} with the module name and {{CONTENT}} with the documentation body HTML.',
-                'Wrap code examples in <pre><code class="language-typescript">...</code></pre> (or language-go, language-rust).',
-                '',
-                options.artifactTemplate,
-            ].join('\n')
-            : ''
+    if (task.kind === "matched") {
         return [
             `You are checking that a code file matches its ${artifactType}.`,
-            '',
+            "",
             `Code file: ${task.code.absolutePath}`,
             `${artifactType} file: ${task.artifact.absolutePath}`,
-            '',
+            "",
             `Read both files. Determine whether the code fully implements the ${artifactType} and the ${artifactType} accurately describes the code.`,
-            'If they do not match, update the file that is wrong by writing it directly using the write tool at the absolute path shown above.',
-            'IMPORTANT: First use the write tool to write the file. Only after writing, return the JSON.',
-            'Do NOT return JSON before writing the file.',
+            "If they do not match, update the file that is wrong by writing it directly using the write tool at the absolute path shown above.",
+            "IMPORTANT: First use the write tool to write the file. Only after writing, return the JSON.",
+            "Do NOT return JSON before writing the file.",
             languageNote,
-            'If they already match, do not modify any files.',
+            "If they already match, do not modify any files.",
             jsonRules,
             'Return JSON matching the schema: action ("matched" | "updated-code" | "updated-artifact"), targetRelativePath (relative to project root, the file you changed or kept unchanged), description (short human summary).',
-            'Example: {"action": "matched", "targetRelativePath": "src/utils.ts", "description": "The code and specification match."}',
-            templateBlock,
+            `Example: {"action": "matched", "targetRelativePath": "${task.code.relativePath}", "description": "The code and ${artifactType} match."}`,
+            artifactInstructions,
             principlesBlock,
-        ].join('\n')
+        ].join("\n")
     }
 
-    if (task.kind === 'code-only') {
+    if (task.kind === "code-only") {
         const expectedArtifact = artifactRelativePathForCode(
             task.code.relativePath,
             options.artifactDir,
             options.artifactExt,
         )
-        const templateBlock = options.artifactTemplate
-            ? [
-                '',
-                'Use the following unified HTML template for the documentation file.',
-                'Replace {{TITLE}} with the module name and {{CONTENT}} with the documentation body HTML.',
-                'Write the complete HTML file using this template.',
-                'Wrap code examples in <pre><code class="language-typescript">...</code></pre> (or language-go, language-rust).',
-                '',
-                options.artifactTemplate,
-            ].join('\n')
-            : ''
         return [
             `You are generating a ${artifactType} for a code file.`,
-            '',
+            "",
             `Code file: ${task.code.absolutePath}`,
             `Language: ${task.code.lang}`,
-            '',
+            "",
             `Read the code file and write a complete ${artifactType} at ${path.join(projectPath, expectedArtifact)} using the write tool.`,
-            'The file should describe the behavior, public API, types, and important implementation details.',
+            "The file should describe the behavior, public API, types, and important implementation details.",
             languageNote,
-            'IMPORTANT: First use the write tool to write the file. Only after writing, return the JSON.',
-            'Do NOT return JSON before writing the file.',
+            "IMPORTANT: First use the write tool to write the file. Only after writing, return the JSON.",
+            "Do NOT return JSON before writing the file.",
             jsonRules,
             `Return JSON: action "generated-artifact", targetRelativePath "${expectedArtifact}", description (short summary).`,
-            `Example: {"action": "generated-artifact", "targetRelativePath": "${expectedArtifact}", "description": "Created specification for utils.ts."}`,
-            templateBlock,
+            `Example: {"action": "generated-artifact", "targetRelativePath": "${expectedArtifact}", "description": "Created ${artifactType} for ${task.code.relativePath}."}`,
+            artifactInstructions,
             principlesBlock,
-        ].join('\n')
+        ].join("\n")
     }
 
     return [
         `You are generating code from a ${artifactType}.`,
-        '',
+        "",
         `${artifactType} file: ${task.artifact.absolutePath}`,
-        '',
-        'Read the file and write complete, production-ready source code that implements it at the appropriate absolute path in the project root.',
-        'Infer the language from the content and choose the correct file extension and relative path (without the leading "docs/en/" or "code-specs/" prefix and with the appropriate source extension instead of the artifact extension).',
-        'Write the source file directly using the write tool.',
+        "",
+        "Read the file and write complete, production-ready source code that implements it at the appropriate absolute path in the project root.",
+        `Infer the language and source path from the file. Remove the leading "${options.artifactDir}/" and replace the artifact extension with the appropriate source extension.`,
+        "Write the source file directly using the write tool.",
         jsonRules,
         'Return JSON: action "generated-code", targetRelativePath (relative to project root, the file you created), description (short summary).',
         'Example: {"action": "generated-code", "targetRelativePath": "src/utils.ts", "description": "Generated TypeScript implementation from specification."}',
         principlesBlock,
-    ].join('\n')
+    ].join("\n")
 }
 
 async function readFileContent(
@@ -355,7 +353,7 @@ async function readFileContent(
     relPath: string,
 ): Promise<string | null> {
     try {
-        return await readFile(path.join(projectPath, relPath), 'utf-8')
+        return await readFile(path.join(projectPath, relPath), "utf-8")
     } catch {
         return null
     }
@@ -367,10 +365,13 @@ async function classifyEntry(
     beforeMap: Map<string, string | null>,
 ): Promise<ReportEntry> {
     const before = beforeMap.get(decision.targetRelativePath) ?? null
-    const after = await readFileContent(projectPath, decision.targetRelativePath)
+    const after = await readFileContent(
+        projectPath,
+        decision.targetRelativePath,
+    )
 
     let action = decision.action
-    if (action === 'matched') {
+    if (action === "matched") {
         return {
             path: decision.targetRelativePath,
             action,
@@ -379,11 +380,11 @@ async function classifyEntry(
     }
 
     if (before === null && after !== null) {
-        action = action.startsWith('generated') ? action : 'generated-artifact'
+        action = action.startsWith("generated") ? action : "generated-artifact"
     } else if (before !== null && after !== null && before !== after) {
-        action = action.startsWith('updated') ? action : 'updated-artifact'
+        action = action.startsWith("updated") ? action : "updated-artifact"
     } else {
-        action = 'matched'
+        action = "matched"
     }
 
     return {
@@ -395,7 +396,7 @@ async function classifyEntry(
 
 function getString(obj: object, key: string): string | undefined {
     for (const [k, value] of Object.entries(obj)) {
-        if (k === key && typeof value === 'string') {
+        if (k === key && typeof value === "string") {
             return value
         }
     }
@@ -404,22 +405,27 @@ function getString(obj: object, key: string): string | undefined {
 
 function isSyncAction(value: string): value is SyncAction {
     return [
-        'matched',
-        'updated-code',
-        'updated-artifact',
-        'generated-code',
-        'generated-artifact',
+        "matched",
+        "updated-code",
+        "updated-artifact",
+        "generated-code",
+        "generated-artifact",
     ].includes(value)
 }
 
 function isSyncDecision(value: unknown): value is SyncDecision {
-    if (typeof value !== 'object' || value === null) {
+    if (typeof value !== "object" || value === null) {
         return false
     }
-    const action = getString(value, 'action')
-    const targetRelativePath = getString(value, 'targetRelativePath')
-    const description = getString(value, 'description')
-    if (!action || !targetRelativePath || !description || !isSyncAction(action)) {
+    const action = getString(value, "action")
+    const targetRelativePath = getString(value, "targetRelativePath")
+    const description = getString(value, "description")
+    if (
+        !action ||
+        !targetRelativePath ||
+        !description ||
+        !isSyncAction(action)
+    ) {
         return false
     }
     return true
@@ -428,7 +434,7 @@ function isSyncDecision(value: unknown): value is SyncDecision {
 function collectDecisions(ctx: object): SyncDecision[] {
     const decisions: SyncDecision[] = []
     for (const [key, value] of Object.entries(ctx)) {
-        if (key.startsWith('decision_') && isSyncDecision(value)) {
+        if (key.startsWith("decision_") && isSyncDecision(value)) {
             decisions.push(value)
         }
     }
@@ -442,7 +448,7 @@ async function buildBeforeMap(
 ): Promise<Map<string, string | null>> {
     const map = new Map<string, string | null>()
     for (const task of tasks) {
-        if (task.kind === 'matched') {
+        if (task.kind === "matched") {
             map.set(
                 task.code.relativePath,
                 await readFileContent(projectPath, task.code.relativePath),
@@ -451,7 +457,7 @@ async function buildBeforeMap(
                 task.artifact.relativePath,
                 await readFileContent(projectPath, task.artifact.relativePath),
             )
-        } else if (task.kind === 'code-only') {
+        } else if (task.kind === "code-only") {
             const expectedArtifact = artifactRelativePathForCode(
                 task.code.relativePath,
                 options.artifactDir,
@@ -476,13 +482,16 @@ export function buildReport(
     const unchanged: ReportEntry[] = []
 
     for (const entry of entries) {
-        if (entry.action === 'matched') {
+        if (entry.action === "matched") {
             matched.push(entry)
-        } else if (entry.action === 'updated-code' || entry.action === 'updated-artifact') {
+        } else if (
+            entry.action === "updated-code" ||
+            entry.action === "updated-artifact"
+        ) {
             updated.push(entry)
-        } else if (entry.action === 'generated-artifact') {
+        } else if (entry.action === "generated-artifact") {
             generatedArtifacts.push(entry)
-        } else if (entry.action === 'generated-code') {
+        } else if (entry.action === "generated-code") {
             generatedCode.push(entry)
         } else {
             unchanged.push(entry)
@@ -502,17 +511,17 @@ export function buildReport(
 }
 
 function taskId(task: SyncTask): string {
-    if (task.kind === 'matched') {
+    if (task.kind === "matched") {
         return task.code.relativePath
     }
-    if (task.kind === 'code-only') {
+    if (task.kind === "code-only") {
         return task.code.relativePath
     }
     return task.artifact.relativePath
 }
 
 function safeKey(id: string): string {
-    return id.replace(/[^a-zA-Z0-9]/g, '_')
+    return id.replace(/[^a-zA-Z0-9]/g, "_")
 }
 
 export async function runArtifactSync(
@@ -527,6 +536,7 @@ export async function runArtifactSync(
             absoluteProject,
             options.artifactDir,
             options.artifactExt,
+            options.artifactExcludedDirs,
         )
     } catch (error) {
         return {
@@ -540,6 +550,7 @@ export async function runArtifactSync(
         artifactFiles,
         options.artifactDir,
         options.artifactExt,
+        !options.ignoreArtifactOnly,
     )
 
     const beforeMap = await buildBeforeMap(absoluteProject, tasks, options)
@@ -551,30 +562,38 @@ export async function runArtifactSync(
         workflow = workflow.prompt(
             `decision_${key}`,
             () => buildAgentPrompt(absoluteProject, task, options),
-            { model: 'local', schema: SyncDecisionSchema, retry: 3 },
+            { model: "code-check-model", schema: SyncDecisionSchema, retry: 3 },
         )
     }
 
-    const finalWorkflow = workflow.step('report', async (ctx) => {
+    const finalWorkflow = workflow.step("report", async (ctx) => {
         const decisions = collectDecisions(ctx)
         const entries: ReportEntry[] = []
         const errors: Array<{ path: string; error: string }> = []
 
         for (const decision of decisions) {
             try {
-                const entry = await classifyEntry(absoluteProject, decision, beforeMap)
+                const entry = await classifyEntry(
+                    absoluteProject,
+                    decision,
+                    beforeMap,
+                )
                 // If agent claimed to generate/update but file doesn't exist, report error
                 if (
-                    (decision.action === 'generated-artifact' || decision.action === 'updated-artifact') &&
-                    entry.action === 'matched'
+                    (decision.action === "generated-artifact" ||
+                        decision.action === "updated-artifact") &&
+                    entry.action === "matched"
                 ) {
-                    const filePath = path.join(absoluteProject, decision.targetRelativePath)
+                    const filePath = path.join(
+                        absoluteProject,
+                        decision.targetRelativePath,
+                    )
                     try {
-                        await readFile(filePath, 'utf-8')
+                        await readFile(filePath, "utf-8")
                     } catch {
                         errors.push({
                             path: decision.targetRelativePath,
-                            error: 'Agent returned generated/updated but file was not written',
+                            error: "Agent returned generated/updated but file was not written",
                         })
                         continue
                     }
@@ -583,7 +602,8 @@ export async function runArtifactSync(
             } catch (error) {
                 errors.push({
                     path: decision.targetRelativePath,
-                    error: error instanceof Error ? error.message : String(error),
+                    error:
+                        error instanceof Error ? error.message : String(error),
                 })
             }
         }
