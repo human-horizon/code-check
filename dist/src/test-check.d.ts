@@ -1,5 +1,5 @@
-import { type CodeFile } from './artifact-sync.js';
-export type TestAction = 'matched' | 'updated-tests' | 'generated-tests';
+import { type CodeFile } from "./artifact-sync.js";
+export type TestAction = "matched" | "updated-tests" | "generated-tests";
 export interface TestDecision {
     targetRelativePath: string;
     action: TestAction;

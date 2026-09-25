@@ -125,11 +125,11 @@ Analyzes source files and records code problems in `problems/`.
 Run from the project root:
 
 ```bash
-code-check install [project-path]
-code-check update [project-path]
+npx --yes @human-horizon/code-check@latest install [project-path]
+npx --yes @human-horizon/code-check@latest update [project-path]
 ```
 
-`update` upgrades `@human-horizon/code-check` to `latest` in `.lore/weft` and refreshes the numbered pipeline entry points. `install` also installs the latest package version and synchronizes those entry points.
+Use the scoped package name: unscoped `npx code-check` resolves a different npm package. `update` upgrades `@human-horizon/code-check` to `latest` in `.lore/weft`, removes legacy pipeline files, and refreshes the numbered entry points. `install` also installs the latest package version and synchronizes those entry points.
 
 ### CLI (via weft)
 
@@ -209,7 +209,7 @@ interface DocTranslationCheckReport {
 ```bash
 cd /path/to/code-check
 pnpm install
-pnpm test       # vitest (28 tests)
+pnpm test       # vitest (29 tests)
 pnpm check      # tsc --noEmit
 pnpm build      # tsc → dist/src/
 ```

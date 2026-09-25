@@ -1,4 +1,4 @@
-export type CodeLang = 'typescript' | 'go' | 'rust';
+export type CodeLang = "typescript" | "go" | "rust";
 export interface CodeFile {
     lang: CodeLang;
     relativePath: string;
@@ -9,20 +9,20 @@ export interface ArtifactFile {
     absolutePath: string;
 }
 export interface MatchedTask {
-    kind: 'matched';
+    kind: "matched";
     code: CodeFile;
     artifact: ArtifactFile;
 }
 export interface CodeOnlyTask {
-    kind: 'code-only';
+    kind: "code-only";
     code: CodeFile;
 }
 export interface ArtifactOnlyTask {
-    kind: 'artifact-only';
+    kind: "artifact-only";
     artifact: ArtifactFile;
 }
 export type SyncTask = MatchedTask | CodeOnlyTask | ArtifactOnlyTask;
-export type SyncAction = 'matched' | 'updated-code' | 'updated-artifact' | 'generated-code' | 'generated-artifact';
+export type SyncAction = "matched" | "updated-code" | "updated-artifact" | "generated-code" | "generated-artifact";
 export interface SyncDecision {
     action: SyncAction;
     targetRelativePath: string;
@@ -50,10 +50,11 @@ export interface ArtifactSyncOptions {
     projectPath: string;
     artifactDir: string;
     artifactExt: string;
-    artifactName: 'specification' | 'documentation';
+    artifactName: "specification" | "documentation";
     artifactLanguage?: string;
-    /** Full HTML template with {{TITLE}} and {{CONTENT}} placeholders. */
-    artifactTemplate?: string;
+    artifactInstructions?: string;
+    artifactExcludedDirs?: string[];
+    ignoreArtifactOnly?: boolean;
 }
 export type Result<T, E = Error> = {
     ok: true;
@@ -66,8 +67,8 @@ export declare function detectLang(relPath: string): CodeLang | null;
 export declare function removeExt(relPath: string): string;
 export declare function artifactRelativePathForCode(codeRel: string, artifactDir: string, artifactExt: string): string;
 export declare function scanCodeFiles(projectPath: string): Promise<CodeFile[]>;
-export declare function scanArtifactFiles(projectPath: string, artifactDir: string, artifactExt: string): Promise<ArtifactFile[]>;
-export declare function buildSyncTasks(codeFiles: CodeFile[], artifactFiles: ArtifactFile[], artifactDir: string, artifactExt: string): SyncTask[];
+export declare function scanArtifactFiles(projectPath: string, artifactDir: string, artifactExt: string, excludedDirs?: readonly string[]): Promise<ArtifactFile[]>;
+export declare function buildSyncTasks(codeFiles: CodeFile[], artifactFiles: ArtifactFile[], artifactDir: string, artifactExt: string, includeArtifactOnly?: boolean): SyncTask[];
 export declare function buildReport(projectPath: string, tasks: SyncTask[], entries: ReportEntry[], errors: Array<{
     path: string;
     error: string;

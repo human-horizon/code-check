@@ -1,16 +1,19 @@
 {
     "name": "@human-horizon/code-check",
-    "version": "0.4.2",
+    "version": "0.4.5",
     "description": "Weft pipelines for keeping code, specs, docs, tests, and translations in sync",
     "type": "module",
     "scripts": {
-        "build": "tsc",
+        "build": "pnpm clean && tsc",
         "check": "tsc --noEmit",
         "test": "vitest run",
         "clean": "rm -rf dist",
+        "prepack": "pnpm build",
         "pack:dry": "pnpm pack --dry-run"
     },
-    "bin": "./dist/src/cli.js",
+    "bin": {
+        "code-check": "dist/src/cli.js"
+    },
     "exports": {
         ".": {
             "import": "./dist/src/index.js",
@@ -33,8 +36,8 @@
             "types": "./dist/src/test-check.d.ts"
         },
         "./dead-code-check": {
-            "import": "./dist/src/dead-code-check.js",
-            "types": "./dist/src/dead-code-check.d.ts"
+            "import": "./dist/src/problem-check.js",
+            "types": "./dist/src/problem-check.d.ts"
         },
         "./integration-e2e-check": {
             "import": "./dist/src/integration-e2e-check.js",

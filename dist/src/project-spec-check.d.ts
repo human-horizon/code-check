@@ -1,4 +1,4 @@
-export type ProjectSpecAction = 'generated' | 'updated' | 'matched';
+export type ProjectSpecAction = "generated" | "updated" | "matched";
 export interface ProjectSpecFileEntry {
     path: string;
     action: ProjectSpecAction;

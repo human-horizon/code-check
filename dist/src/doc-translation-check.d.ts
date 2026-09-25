@@ -1,4 +1,4 @@
-export type TranslationAction = 'generated' | 'updated' | 'matched';
+export type TranslationAction = "generated" | "updated" | "matched";
 export interface TranslationEntry {
     path: string;
     action: TranslationAction;

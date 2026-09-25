@@ -1,51 +1,51 @@
-import { weave } from '@human-horizon/weft';
-import { z } from 'zod';
-import { readdir, stat, readFile } from 'node:fs/promises';
-import path from 'node:path';
-import { HUMAN_HORIZON_PRINCIPLES } from './principles.js';
+import { weave } from "@human-horizon/weft";
+import { z } from "zod";
+import { readdir, stat, readFile } from "node:fs/promises";
+import path from "node:path";
+import { HUMAN_HORIZON_PRINCIPLES } from "./principles.js";
 const SyncDecisionSchema = z.object({
     action: z.enum([
-        'matched',
-        'updated-code',
-        'updated-artifact',
-        'generated-code',
-        'generated-artifact',
+        "matched",
+        "updated-code",
+        "updated-artifact",
+        "generated-code",
+        "generated-artifact",
     ]),
     targetRelativePath: z.string(),
     description: z.string(),
 });
 const EXCLUDED_DIRS = new Set([
-    'node_modules',
-    'dist',
-    '.git',
-    '.ai',
-    '.lore',
-    '.vscode',
-    'coverage',
-    'target',
-    'build',
-    'out',
-    'tmp',
-    'temp',
+    "node_modules",
+    "dist",
+    ".git",
+    ".ai",
+    ".lore",
+    ".vscode",
+    "coverage",
+    "target",
+    "build",
+    "out",
+    "tmp",
+    "temp",
 ]);
-const EXCLUDED_PREFIXES = ['.', '_'];
+const EXCLUDED_PREFIXES = [".", "_"];
 function isExcludedFile(relPath) {
     const base = path.basename(relPath);
     return EXCLUDED_PREFIXES.some((prefix) => base.startsWith(prefix));
 }
 export function detectLang(relPath) {
-    if ((relPath.endsWith('.ts') || relPath.endsWith('.tsx')) &&
-        !relPath.endsWith('.test.ts') &&
-        !relPath.endsWith('.spec.ts') &&
-        !relPath.endsWith('.test.tsx') &&
-        !relPath.endsWith('.spec.tsx')) {
-        return 'typescript';
+    if ((relPath.endsWith(".ts") || relPath.endsWith(".tsx")) &&
+        !relPath.endsWith(".test.ts") &&
+        !relPath.endsWith(".spec.ts") &&
+        !relPath.endsWith(".test.tsx") &&
+        !relPath.endsWith(".spec.tsx")) {
+        return "typescript";
     }
-    if (relPath.endsWith('.go') && !relPath.endsWith('_test.go')) {
-        return 'go';
+    if (relPath.endsWith(".go") && !relPath.endsWith("_test.go")) {
+        return "go";
     }
-    if (relPath.endsWith('.rs')) {
-        return 'rust';
+    if (relPath.endsWith(".rs")) {
+        return "rust";
     }
     return null;
 }
@@ -56,13 +56,13 @@ export function removeExt(relPath) {
 export function artifactRelativePathForCode(codeRel, artifactDir, artifactExt) {
     return path
         .join(artifactDir, `${removeExt(codeRel)}${artifactExt}`)
-        .replace(/\\/g, '/');
+        .replace(/\\/g, "/");
 }
 async function walk(root, currentRel, callback) {
     const absDir = currentRel ? path.join(root, currentRel) : root;
     const entries = await readdir(absDir, { withFileTypes: true });
     for (const entry of entries) {
-        if (entry.name.startsWith('.') && entry.name !== '.') {
+        if (entry.name.startsWith(".") && entry.name !== ".") {
             continue;
         }
         if (EXCLUDED_DIRS.has(entry.name)) {
@@ -80,7 +80,7 @@ async function walk(root, currentRel, callback) {
 }
 export async function scanCodeFiles(projectPath) {
     const files = [];
-    await walk(projectPath, '', (relPath, absPath) => {
+    await walk(projectPath, "", (relPath, absPath) => {
         if (isExcludedFile(relPath)) {
             return;
         }
@@ -90,13 +90,18 @@ export async function scanCodeFiles(projectPath) {
         }
         files.push({
             lang,
-            relativePath: relPath.replace(/\\/g, '/'),
+            relativePath: relPath.replace(/\\/g, "/"),
             absolutePath: absPath,
         });
     });
     return files;
 }
-export async function scanArtifactFiles(projectPath, artifactDir, artifactExt) {
+function isExcludedArtifactPath(relPath, excludedDirs) {
+    const normalizedPath = relPath.replace(/\\/g, "/");
+    return excludedDirs.some((excludedDir) => normalizedPath === excludedDir ||
+        normalizedPath.startsWith(`${excludedDir}/`));
+}
+export async function scanArtifactFiles(projectPath, artifactDir, artifactExt, excludedDirs = []) {
     const artifactRoot = path.join(projectPath, artifactDir);
     const files = [];
     try {
@@ -105,18 +110,19 @@ export async function scanArtifactFiles(projectPath, artifactDir, artifactExt) {
     catch {
         return files;
     }
-    await walk(artifactRoot, '', (relPath, absPath) => {
-        if (!relPath.endsWith(artifactExt)) {
+    await walk(artifactRoot, "", (relPath, absPath) => {
+        if (!relPath.endsWith(artifactExt) ||
+            isExcludedArtifactPath(relPath, excludedDirs)) {
             return;
         }
         files.push({
-            relativePath: path.join(artifactDir, relPath.replace(/\\/g, '/')),
+            relativePath: path.join(artifactDir, relPath.replace(/\\/g, "/")),
             absolutePath: absPath,
         });
     });
     return files;
 }
-export function buildSyncTasks(codeFiles, artifactFiles, artifactDir, artifactExt) {
+export function buildSyncTasks(codeFiles, artifactFiles, artifactDir, artifactExt, includeArtifactOnly = true) {
     const artifactMap = new Map(artifactFiles.map((a) => [a.relativePath, a]));
     const matchedArtifactRels = new Set();
     const tasks = [];
@@ -124,16 +130,18 @@ export function buildSyncTasks(codeFiles, artifactFiles, artifactDir, artifactEx
         const expectedArtifact = artifactRelativePathForCode(code.relativePath, artifactDir, artifactExt);
         const artifact = artifactMap.get(expectedArtifact);
         if (artifact) {
-            tasks.push({ kind: 'matched', code, artifact });
+            tasks.push({ kind: "matched", code, artifact });
             matchedArtifactRels.add(artifact.relativePath);
         }
         else {
-            tasks.push({ kind: 'code-only', code });
+            tasks.push({ kind: "code-only", code });
         }
     }
-    for (const artifact of artifactFiles) {
-        if (!matchedArtifactRels.has(artifact.relativePath)) {
-            tasks.push({ kind: 'artifact-only', artifact });
+    if (includeArtifactOnly) {
+        for (const artifact of artifactFiles) {
+            if (!matchedArtifactRels.has(artifact.relativePath)) {
+                tasks.push({ kind: "artifact-only", artifact });
+            }
         }
     }
     return tasks;
@@ -142,92 +150,71 @@ function buildAgentPrompt(projectPath, task, options) {
     const artifactType = options.artifactName;
     const languageNote = options.artifactLanguage
         ? `The ${artifactType} must be written in ${options.artifactLanguage}.`
-        : '';
+        : "";
+    const artifactInstructions = options.artifactInstructions ?? "";
     const principlesBlock = `\n\nHuman Horizon Development Standards:\n${HUMAN_HORIZON_PRINCIPLES}\n`;
     const jsonRules = [
-        'Return ONLY a single raw JSON object.',
-        'Do NOT wrap the JSON in markdown code blocks and do NOT use triple backticks anywhere in the response.',
-        'Do NOT put file content in the JSON response.',
-    ].join(' ');
-    if (task.kind === 'matched') {
-        const templateBlock = options.artifactTemplate
-            ? [
-                '',
-                'The documentation follows a unified HTML template shown below.',
-                'If the existing file does not follow this template, rewrite it using the template.',
-                'Replace {{TITLE}} with the module name and {{CONTENT}} with the documentation body HTML.',
-                'Wrap code examples in <pre><code class="language-typescript">...</code></pre> (or language-go, language-rust).',
-                '',
-                options.artifactTemplate,
-            ].join('\n')
-            : '';
+        "Return ONLY a single raw JSON object.",
+        "Do NOT wrap the JSON in markdown code blocks and do NOT use triple backticks anywhere in the response.",
+        "Do NOT put file content in the JSON response.",
+    ].join(" ");
+    if (task.kind === "matched") {
         return [
             `You are checking that a code file matches its ${artifactType}.`,
-            '',
+            "",
             `Code file: ${task.code.absolutePath}`,
             `${artifactType} file: ${task.artifact.absolutePath}`,
-            '',
+            "",
             `Read both files. Determine whether the code fully implements the ${artifactType} and the ${artifactType} accurately describes the code.`,
-            'If they do not match, update the file that is wrong by writing it directly using the write tool at the absolute path shown above.',
-            'IMPORTANT: First use the write tool to write the file. Only after writing, return the JSON.',
-            'Do NOT return JSON before writing the file.',
+            "If they do not match, update the file that is wrong by writing it directly using the write tool at the absolute path shown above.",
+            "IMPORTANT: First use the write tool to write the file. Only after writing, return the JSON.",
+            "Do NOT return JSON before writing the file.",
             languageNote,
-            'If they already match, do not modify any files.',
+            "If they already match, do not modify any files.",
             jsonRules,
             'Return JSON matching the schema: action ("matched" | "updated-code" | "updated-artifact"), targetRelativePath (relative to project root, the file you changed or kept unchanged), description (short human summary).',
-            'Example: {"action": "matched", "targetRelativePath": "src/utils.ts", "description": "The code and specification match."}',
-            templateBlock,
+            `Example: {"action": "matched", "targetRelativePath": "${task.code.relativePath}", "description": "The code and ${artifactType} match."}`,
+            artifactInstructions,
             principlesBlock,
-        ].join('\n');
+        ].join("\n");
     }
-    if (task.kind === 'code-only') {
+    if (task.kind === "code-only") {
         const expectedArtifact = artifactRelativePathForCode(task.code.relativePath, options.artifactDir, options.artifactExt);
-        const templateBlock = options.artifactTemplate
-            ? [
-                '',
-                'Use the following unified HTML template for the documentation file.',
-                'Replace {{TITLE}} with the module name and {{CONTENT}} with the documentation body HTML.',
-                'Write the complete HTML file using this template.',
-                'Wrap code examples in <pre><code class="language-typescript">...</code></pre> (or language-go, language-rust).',
-                '',
-                options.artifactTemplate,
-            ].join('\n')
-            : '';
         return [
             `You are generating a ${artifactType} for a code file.`,
-            '',
+            "",
             `Code file: ${task.code.absolutePath}`,
             `Language: ${task.code.lang}`,
-            '',
+            "",
             `Read the code file and write a complete ${artifactType} at ${path.join(projectPath, expectedArtifact)} using the write tool.`,
-            'The file should describe the behavior, public API, types, and important implementation details.',
+            "The file should describe the behavior, public API, types, and important implementation details.",
             languageNote,
-            'IMPORTANT: First use the write tool to write the file. Only after writing, return the JSON.',
-            'Do NOT return JSON before writing the file.',
+            "IMPORTANT: First use the write tool to write the file. Only after writing, return the JSON.",
+            "Do NOT return JSON before writing the file.",
             jsonRules,
             `Return JSON: action "generated-artifact", targetRelativePath "${expectedArtifact}", description (short summary).`,
-            `Example: {"action": "generated-artifact", "targetRelativePath": "${expectedArtifact}", "description": "Created specification for utils.ts."}`,
-            templateBlock,
+            `Example: {"action": "generated-artifact", "targetRelativePath": "${expectedArtifact}", "description": "Created ${artifactType} for ${task.code.relativePath}."}`,
+            artifactInstructions,
             principlesBlock,
-        ].join('\n');
+        ].join("\n");
     }
     return [
         `You are generating code from a ${artifactType}.`,
-        '',
+        "",
         `${artifactType} file: ${task.artifact.absolutePath}`,
-        '',
-        'Read the file and write complete, production-ready source code that implements it at the appropriate absolute path in the project root.',
-        'Infer the language from the content and choose the correct file extension and relative path (without the leading "docs/en/" or "code-specs/" prefix and with the appropriate source extension instead of the artifact extension).',
-        'Write the source file directly using the write tool.',
+        "",
+        "Read the file and write complete, production-ready source code that implements it at the appropriate absolute path in the project root.",
+        `Infer the language and source path from the file. Remove the leading "${options.artifactDir}/" and replace the artifact extension with the appropriate source extension.`,
+        "Write the source file directly using the write tool.",
         jsonRules,
         'Return JSON: action "generated-code", targetRelativePath (relative to project root, the file you created), description (short summary).',
         'Example: {"action": "generated-code", "targetRelativePath": "src/utils.ts", "description": "Generated TypeScript implementation from specification."}',
         principlesBlock,
-    ].join('\n');
+    ].join("\n");
 }
 async function readFileContent(projectPath, relPath) {
     try {
-        return await readFile(path.join(projectPath, relPath), 'utf-8');
+        return await readFile(path.join(projectPath, relPath), "utf-8");
     }
     catch {
         return null;
@@ -237,7 +224,7 @@ async function classifyEntry(projectPath, decision, beforeMap) {
     const before = beforeMap.get(decision.targetRelativePath) ?? null;
     const after = await readFileContent(projectPath, decision.targetRelativePath);
     let action = decision.action;
-    if (action === 'matched') {
+    if (action === "matched") {
         return {
             path: decision.targetRelativePath,
             action,
@@ -245,13 +232,13 @@ async function classifyEntry(projectPath, decision, beforeMap) {
         };
     }
     if (before === null && after !== null) {
-        action = action.startsWith('generated') ? action : 'generated-artifact';
+        action = action.startsWith("generated") ? action : "generated-artifact";
     }
     else if (before !== null && after !== null && before !== after) {
-        action = action.startsWith('updated') ? action : 'updated-artifact';
+        action = action.startsWith("updated") ? action : "updated-artifact";
     }
     else {
-        action = 'matched';
+        action = "matched";
     }
     return {
         path: decision.targetRelativePath,
@@ -261,7 +248,7 @@ async function classifyEntry(projectPath, decision, beforeMap) {
 }
 function getString(obj, key) {
     for (const [k, value] of Object.entries(obj)) {
-        if (k === key && typeof value === 'string') {
+        if (k === key && typeof value === "string") {
             return value;
         }
     }
@@ -269,21 +256,24 @@ function getString(obj, key) {
 }
 function isSyncAction(value) {
     return [
-        'matched',
-        'updated-code',
-        'updated-artifact',
-        'generated-code',
-        'generated-artifact',
+        "matched",
+        "updated-code",
+        "updated-artifact",
+        "generated-code",
+        "generated-artifact",
     ].includes(value);
 }
 function isSyncDecision(value) {
-    if (typeof value !== 'object' || value === null) {
+    if (typeof value !== "object" || value === null) {
         return false;
     }
-    const action = getString(value, 'action');
-    const targetRelativePath = getString(value, 'targetRelativePath');
-    const description = getString(value, 'description');
-    if (!action || !targetRelativePath || !description || !isSyncAction(action)) {
+    const action = getString(value, "action");
+    const targetRelativePath = getString(value, "targetRelativePath");
+    const description = getString(value, "description");
+    if (!action ||
+        !targetRelativePath ||
+        !description ||
+        !isSyncAction(action)) {
         return false;
     }
     return true;
@@ -291,7 +281,7 @@ function isSyncDecision(value) {
 function collectDecisions(ctx) {
     const decisions = [];
     for (const [key, value] of Object.entries(ctx)) {
-        if (key.startsWith('decision_') && isSyncDecision(value)) {
+        if (key.startsWith("decision_") && isSyncDecision(value)) {
             decisions.push(value);
         }
     }
@@ -300,11 +290,11 @@ function collectDecisions(ctx) {
 async function buildBeforeMap(projectPath, tasks, options) {
     const map = new Map();
     for (const task of tasks) {
-        if (task.kind === 'matched') {
+        if (task.kind === "matched") {
             map.set(task.code.relativePath, await readFileContent(projectPath, task.code.relativePath));
             map.set(task.artifact.relativePath, await readFileContent(projectPath, task.artifact.relativePath));
         }
-        else if (task.kind === 'code-only') {
+        else if (task.kind === "code-only") {
             const expectedArtifact = artifactRelativePathForCode(task.code.relativePath, options.artifactDir, options.artifactExt);
             map.set(expectedArtifact, null);
         }
@@ -318,16 +308,17 @@ export function buildReport(projectPath, tasks, entries, errors) {
     const generatedCode = [];
     const unchanged = [];
     for (const entry of entries) {
-        if (entry.action === 'matched') {
+        if (entry.action === "matched") {
             matched.push(entry);
         }
-        else if (entry.action === 'updated-code' || entry.action === 'updated-artifact') {
+        else if (entry.action === "updated-code" ||
+            entry.action === "updated-artifact") {
             updated.push(entry);
         }
-        else if (entry.action === 'generated-artifact') {
+        else if (entry.action === "generated-artifact") {
             generatedArtifacts.push(entry);
         }
-        else if (entry.action === 'generated-code') {
+        else if (entry.action === "generated-code") {
             generatedCode.push(entry);
         }
         else {
@@ -346,16 +337,16 @@ export function buildReport(projectPath, tasks, entries, errors) {
     };
 }
 function taskId(task) {
-    if (task.kind === 'matched') {
+    if (task.kind === "matched") {
         return task.code.relativePath;
     }
-    if (task.kind === 'code-only') {
+    if (task.kind === "code-only") {
         return task.code.relativePath;
     }
     return task.artifact.relativePath;
 }
 function safeKey(id) {
-    return id.replace(/[^a-zA-Z0-9]/g, '_');
+    return id.replace(/[^a-zA-Z0-9]/g, "_");
 }
 export async function runArtifactSync(options) {
     const absoluteProject = path.resolve(options.projectPath);
@@ -363,7 +354,7 @@ export async function runArtifactSync(options) {
     let artifactFiles;
     try {
         codeFiles = await scanCodeFiles(absoluteProject);
-        artifactFiles = await scanArtifactFiles(absoluteProject, options.artifactDir, options.artifactExt);
+        artifactFiles = await scanArtifactFiles(absoluteProject, options.artifactDir, options.artifactExt, options.artifactExcludedDirs);
     }
     catch (error) {
         return {
@@ -371,14 +362,14 @@ export async function runArtifactSync(options) {
             error: error instanceof Error ? error : new Error(String(error)),
         };
     }
-    const tasks = buildSyncTasks(codeFiles, artifactFiles, options.artifactDir, options.artifactExt);
+    const tasks = buildSyncTasks(codeFiles, artifactFiles, options.artifactDir, options.artifactExt, !options.ignoreArtifactOnly);
     const beforeMap = await buildBeforeMap(absoluteProject, tasks, options);
     let workflow = weave();
     for (const task of tasks) {
         const key = safeKey(taskId(task));
-        workflow = workflow.prompt(`decision_${key}`, () => buildAgentPrompt(absoluteProject, task, options), { model: 'local', schema: SyncDecisionSchema, retry: 3 });
+        workflow = workflow.prompt(`decision_${key}`, () => buildAgentPrompt(absoluteProject, task, options), { model: "code-check-model", schema: SyncDecisionSchema, retry: 3 });
     }
-    const finalWorkflow = workflow.step('report', async (ctx) => {
+    const finalWorkflow = workflow.step("report", async (ctx) => {
         const decisions = collectDecisions(ctx);
         const entries = [];
         const errors = [];
@@ -386,16 +377,17 @@ export async function runArtifactSync(options) {
             try {
                 const entry = await classifyEntry(absoluteProject, decision, beforeMap);
                 // If agent claimed to generate/update but file doesn't exist, report error
-                if ((decision.action === 'generated-artifact' || decision.action === 'updated-artifact') &&
-                    entry.action === 'matched') {
+                if ((decision.action === "generated-artifact" ||
+                    decision.action === "updated-artifact") &&
+                    entry.action === "matched") {
                     const filePath = path.join(absoluteProject, decision.targetRelativePath);
                     try {
-                        await readFile(filePath, 'utf-8');
+                        await readFile(filePath, "utf-8");
                     }
                     catch {
                         errors.push({
                             path: decision.targetRelativePath,
-                            error: 'Agent returned generated/updated but file was not written',
+                            error: "Agent returned generated/updated but file was not written",
                         });
                         continue;
                     }
